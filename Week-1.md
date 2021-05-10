@@ -8,7 +8,7 @@
 > Airbnb, Airbnb in Toronto, and background on COVID-19 in Toronto.
 
 > As this project will likely involve spatial modelling, I also provide
-> a some review of Paula Moraga’s “Small Area Disease Risk Estimation
+> some review of Paula Moraga’s “Small Area Disease Risk Estimation
 > and Visualization Using R”
 
 ## Setting the stage for the Project

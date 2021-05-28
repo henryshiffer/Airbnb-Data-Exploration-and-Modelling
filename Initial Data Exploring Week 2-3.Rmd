@@ -13,38 +13,6 @@ knitr::opts_chunk$set(echo = TRUE)
 
 
 
-
-
-```{r}
-installed.packages("usethis")
-```
-
-
-
-
-
-
-```{r}
-usethis::use_github()
-```
-
-
-
-
-
-```{r}
-#install.packages('remotes')
-remotes::install_github("RohanAlexander/DoSStoolkit")
-```
-
-```{r}
-#install.packages("learnr")
-#library(learnr)
-learnr::run_tutorial("git_outta_here", package = "DoSStoolkit")
-```
-
-
-
 # Data Exploration:
 
 

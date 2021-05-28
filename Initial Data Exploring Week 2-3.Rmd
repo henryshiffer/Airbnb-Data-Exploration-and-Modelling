@@ -27,6 +27,7 @@ This data is from Inside Airbnb (www.insideairbnb.com) (Cox, 2021). In this sect
 
 
 ```{r message = FALSE}
+library(raster)
 library(sf)
 library(mapview)
 library(tidyverse) 

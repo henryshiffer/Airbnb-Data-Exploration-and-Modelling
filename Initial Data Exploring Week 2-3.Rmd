@@ -382,12 +382,23 @@ We can plot the prices of February 2019, February 2020, and February 2021 on a m
 feb_19_airbnb_sf <- st_as_sf(feb_19_airbnb, coords = c("longitude", "latitude"), crs = 4326)
 feb_20_airbnb_sf <- st_as_sf(feb_20_airbnb, coords = c("longitude", "latitude"), crs = 4326)
 feb_21_airbnb_sf <- st_as_sf(feb_21_airbnb, coords = c("longitude", "latitude"), crs = 4326)
-mapview(feb_19_airbnb_sf, zcol = "price", legend = TRUE)
-mapview(feb_20_airbnb_sf, zcol = "price", legend = TRUE)
-mapview(feb_21_airbnb_sf, zcol = "price", legend = TRUE)
 ```
 
 
+
+```{r}
+mapview(feb_19_airbnb_sf, zcol = "price", legend = TRUE)
+```
+
+
+```{r}
+mapview(feb_20_airbnb_sf, zcol = "price", legend = TRUE)
+```
+
+
+```{r}
+mapview(feb_21_airbnb_sf, zcol = "price", legend = TRUE)
+```
 
 
 

@@ -27,12 +27,9 @@ This data is from Inside Airbnb (www.insideairbnb.com) (Cox, 2021). In this sect
 
 
 ```{r message = FALSE}
-library(raster)
 library(sf)
-library(mapview)
 library(tidyverse) 
 library(tidymodels) 
-library(visdat) 
 library(ggmap)
 ```
 
@@ -406,7 +403,7 @@ feb21_map_borders <- c(bottom  = min(feb_21_airbnb$latitude),
                 right = max(feb_21_airbnb$longitude))
 map1 <- get_stamenmap(feb21_map_borders, maptype = "toner-lite")
 ggmap(map1) + geom_point(data = feb_21_airbnb, mapping = aes(x = longitude, y = latitude, 
-                                               col = log(price))) + scale_colour_distiller(palette = "RdYlBu") + ggtitle("Feb 2021")
+                                               col = log(price))) + scale_colour_distiller(palette = "RdYlBu") + ggtitle("Feb 2021 Prices")
 
 feb20_map_borders <- c(bottom  = min(feb_20_airbnb$latitude), 
                 top = max(feb_20_airbnb$latitude),
@@ -414,7 +411,7 @@ feb20_map_borders <- c(bottom  = min(feb_20_airbnb$latitude),
                 right = max(feb_20_airbnb$longitude))
 map2 <- get_stamenmap(feb20_map_borders, maptype = "toner-lite")
 ggmap(map2) + geom_point(data = feb_20_airbnb, mapping = aes(x = longitude, y = latitude, 
-                                               col = log(price))) + scale_colour_distiller(palette = "RdYlBu") + ggtitle("Feb 2020")
+                                               col = log(price))) + scale_colour_distiller(palette = "RdYlBu") + ggtitle("Feb 2020 Prices")
 
 feb19_map_borders <- c(bottom  = min(feb_19_airbnb$latitude), 
                 top= max(feb_19_airbnb$latitude),
@@ -422,7 +419,7 @@ feb19_map_borders <- c(bottom  = min(feb_19_airbnb$latitude),
                 right = max(feb_19_airbnb$longitude))
 map3 <- get_stamenmap(feb19_map_borders, maptype = "toner-lite")
 ggmap(map3) + geom_point(data = feb_19_airbnb, mapping = aes(x = longitude, y = latitude, 
-                                               col = log(price))) + scale_colour_distiller(palette = "RdYlBu") + ggtitle("Feb 2019")
+                                               col = log(price))) + scale_colour_distiller(palette = "RdYlBu") + ggtitle("Feb 2019 Prices")
 
 ```
 

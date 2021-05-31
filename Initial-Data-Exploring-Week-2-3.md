@@ -9,12 +9,9 @@ this section we will preform some explanatory statistics of Toronto’s
 Airbnb data from the month February 2021.
 
 ``` r
-library(raster)
 library(sf)
-library(mapview)
 library(tidyverse) 
 library(tidymodels) 
-library(visdat) 
 library(ggmap)
 ```
 
@@ -392,7 +389,7 @@ feb21_map_borders <- c(bottom  = min(feb_21_airbnb$latitude),
                 right = max(feb_21_airbnb$longitude))
 map1 <- get_stamenmap(feb21_map_borders, maptype = "toner-lite")
 ggmap(map1) + geom_point(data = feb_21_airbnb, mapping = aes(x = longitude, y = latitude, 
-                                               col = log(price))) + scale_colour_distiller(palette = "RdYlBu") + ggtitle("Feb 2021")
+                                               col = log(price))) + scale_colour_distiller(palette = "RdYlBu") + ggtitle("Feb 2021 Prices")
 ```
 
 ![](Initial-Data-Exploring-Week-2-3_files/figure-gfm/unnamed-chunk-19-1.png)<!-- -->
@@ -404,7 +401,7 @@ feb20_map_borders <- c(bottom  = min(feb_20_airbnb$latitude),
                 right = max(feb_20_airbnb$longitude))
 map2 <- get_stamenmap(feb20_map_borders, maptype = "toner-lite")
 ggmap(map2) + geom_point(data = feb_20_airbnb, mapping = aes(x = longitude, y = latitude, 
-                                               col = log(price))) + scale_colour_distiller(palette = "RdYlBu") + ggtitle("Feb 2020")
+                                               col = log(price))) + scale_colour_distiller(palette = "RdYlBu") + ggtitle("Feb 2020 Prices")
 ```
 
 ![](Initial-Data-Exploring-Week-2-3_files/figure-gfm/unnamed-chunk-19-2.png)<!-- -->
@@ -416,7 +413,7 @@ feb19_map_borders <- c(bottom  = min(feb_19_airbnb$latitude),
                 right = max(feb_19_airbnb$longitude))
 map3 <- get_stamenmap(feb19_map_borders, maptype = "toner-lite")
 ggmap(map3) + geom_point(data = feb_19_airbnb, mapping = aes(x = longitude, y = latitude, 
-                                               col = log(price))) + scale_colour_distiller(palette = "RdYlBu") + ggtitle("Feb 2019")
+                                               col = log(price))) + scale_colour_distiller(palette = "RdYlBu") + ggtitle("Feb 2019 Prices")
 ```
 
 ![](Initial-Data-Exploring-Week-2-3_files/figure-gfm/unnamed-chunk-19-3.png)<!-- -->

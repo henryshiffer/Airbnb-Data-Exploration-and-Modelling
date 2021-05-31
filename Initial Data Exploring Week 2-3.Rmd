@@ -40,7 +40,7 @@ library(ggmap)
 We can load Toronto's February 2021 Airbnb data into R by:
 
 ```{r message = FALSE}
-feb_21_airbnb <- read_csv("Airbnb February 2021.csv", guess_max = 20000)
+feb_21_airbnb <- read_csv("AirbnbFebruary2021.csv", guess_max = 20000)
 ```
 
 
@@ -88,6 +88,9 @@ glimpse(feb_21_airbnb$price)
 
 
 We can plot the Airbnb price per night data on the X-axis with number of properties having that price per night on the Y-axis. It can be observed that the distribution is strongly right skewed. We can examine if this skew still exists zooming in closer at the prices per night.
+
+
+
 
 
 ```{r}
@@ -334,9 +337,17 @@ feb_21_airbnb %>%
        y = "Number of properties")
 ```
 
-#Compare March 2020 to April 2020 when recieve April 2020 data
+
 
 We can see that the majority of properties have a minimum amount of night booking of around 28. This makes sense as in April 2020, Ontario had banned all short term rentals (a rental period of less than 28 days) unless the unit is being rented to someone in need of housing during the "Emergency Order". 
+
+
+
+
+
+
+
+
 
 
 
@@ -350,8 +361,8 @@ To see how prices in February 2021 compare to the pre-pandemic months of Februar
 
 
 ```{r warning = FALSE, message=FALSE}
-feb_19_airbnb <- read_csv("Airbnb February 2019.csv", guess_max = 20000)
-feb_20_airbnb <- read_csv("Airbnb February 2020.csv", guess_max = 20000)
+feb_19_airbnb <- read_csv("AirbnbFebruary2019.csv", guess_max = 20000)
+feb_20_airbnb <- read_csv("AirbnbFebruary2020.csv", guess_max = 20000)
 ```
 
 
@@ -360,6 +371,9 @@ We can now clean the price column of both February 2019 and February 2020, like 
 
 
 ```{r}
+
+
+
 feb_19_airbnb <- feb_19_airbnb %>% 
   mutate(price = str_remove(price, "\\$"),
          price = str_remove(price, ","),
@@ -376,30 +390,66 @@ feb_20_airbnb <- feb_20_airbnb %>%
 
 
 
-We can plot the prices of February 2019, February 2020, and February 2021 on a map of Toronto. 
 
 
-```{r}
-feb_19_airbnb_sf <- st_as_sf(feb_19_airbnb, coords = c("longitude", "latitude"), crs = 4326)
-feb_20_airbnb_sf <- st_as_sf(feb_20_airbnb, coords = c("longitude", "latitude"), crs = 4326)
-feb_21_airbnb_sf <- st_as_sf(feb_21_airbnb, coords = c("longitude", "latitude"), crs = 4326)
+
+We can plot the prices of February 2019, February 2020, and February 2021 on a map of Toronto. We will use a log scale of the prices as it will be easier to see the difference between low, medium, and high prices.
+
+
+
+
+
+```{r message=FALSE}
+feb21_map_borders <- c(bottom  = min(feb_21_airbnb$latitude), 
+                top = max(feb_21_airbnb$latitude),
+                left = min(feb_21_airbnb$longitude),
+                right = max(feb_21_airbnb$longitude))
+map1 <- get_stamenmap(feb21_map_borders, maptype = "toner-lite")
+ggmap(map1) + geom_point(data = feb_21_airbnb, mapping = aes(x = longitude, y = latitude, 
+                                               col = log(price))) + scale_colour_distiller(palette = "RdYlBu") + ggtitle("Feb 2021")
+
+feb20_map_borders <- c(bottom  = min(feb_20_airbnb$latitude), 
+                top = max(feb_20_airbnb$latitude),
+                left = min(feb_20_airbnb$longitude),
+                right = max(feb_20_airbnb$longitude))
+map2 <- get_stamenmap(feb20_map_borders, maptype = "toner-lite")
+ggmap(map2) + geom_point(data = feb_20_airbnb, mapping = aes(x = longitude, y = latitude, 
+                                               col = log(price))) + scale_colour_distiller(palette = "RdYlBu") + ggtitle("Feb 2020")
+
+feb19_map_borders <- c(bottom  = min(feb_19_airbnb$latitude), 
+                top= max(feb_19_airbnb$latitude),
+                left = min(feb_19_airbnb$longitude),
+                right = max(feb_19_airbnb$longitude))
+map3 <- get_stamenmap(feb19_map_borders, maptype = "toner-lite")
+ggmap(map3) + geom_point(data = feb_19_airbnb, mapping = aes(x = longitude, y = latitude, 
+                                               col = log(price))) + scale_colour_distiller(palette = "RdYlBu") + ggtitle("Feb 2019")
+
 ```
 
 
 
-```{r}
-mapview(feb_19_airbnb_sf, zcol = "price", legend = TRUE)
-```
 
 
-```{r}
-mapview(feb_20_airbnb_sf, zcol = "price", legend = TRUE)
-```
 
 
-```{r}
-mapview(feb_21_airbnb_sf, zcol = "price", legend = TRUE)
-```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

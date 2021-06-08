@@ -1,0 +1,660 @@
+---
+title: "More Data Exploration"
+author: "Henry Shiffer"
+output: github_document
+always_allow_html: true
+---
+
+
+# Continued Data Exploration and Initial Modelling:
+
+
+
+
+```{r message = FALSE}
+library(tidyverse) 
+library(tidymodels) 
+library(ggmap)
+library(varhandle)
+library(caret)
+library(readr)
+```
+
+
+
+
+In this section will continue exploring Toronto's February 2021 Airbnb data and build some initial models.
+
+
+
+
+
+
+
+Loading Toronto's February 2021 Airbnb data into R by:
+
+
+```{r message = FALSE}
+feb_21_airbnb <- read_csv("AirbnbFebruary2021.csv", guess_max = 20000)
+glimpse(feb_21_airbnb)
+
+#getting rid of the $ and , in price
+feb_21_airbnb <- feb_21_airbnb %>% 
+  mutate(price = str_remove(price, "\\$"),
+         price = str_remove(price, ","),
+         price = as.integer(price)
+         )
+```
+
+
+
+
+A note: The Airbnb data is being called locally and is not on Github.
+
+
+## Review Scores Map:
+
+
+We can gain a view of where in Toronto has the highest and lowest Airbnb review score ratings. To do this the NA values must be filtered out before these values can be mapped.
+
+
+
+
+```{r}
+#getting rid of NA values for review_scores_rating in the original data-set
+rsr_filtered_airbnb <- feb_21_airbnb %>%
+  filter(!is.na(review_scores_rating))
+
+#mapping the NA value filtered review_scores_ratings values
+rsr_filtered_borders <- c(bottom  = min(rsr_filtered_airbnb$latitude), 
+                top = max(rsr_filtered_airbnb$latitude),
+                left = min(rsr_filtered_airbnb$longitude),
+                right = max(rsr_filtered_airbnb$longitude))
+map1 <- get_stamenmap(rsr_filtered_borders, maptype = "toner-lite")
+ggmap(map1) + geom_point(data = rsr_filtered_airbnb, mapping = aes(x = longitude, y = latitude, 
+                                               col = review_scores_rating)) + scale_colour_distiller(palette = "RdYlBu") + ggtitle("Feb 2021 Review Scores")
+```
+
+
+
+
+
+
+## Superhosts Map:
+
+A map of superhosts would also be interesting. From the Airbnb website (https://www.airbnb.ca/help/article/829/how-do-i-become-a-superhost), a superhost is defined as a host who has met all of the following requirements:
+
+
+> "Completed at least 10 trips OR completed 3 reservations that total at least 100 nights"
+
+> "Maintained a 90% response rate or higher"
+
+> "Maintained a 1% percent cancellation rate (1 cancellation per 100 reservations)"
+
+> "Maintained a 4.8 overall rating (this rating looks at the past 365 days of reviews, based on the date the guest left a review, not the date the guest checked out)"
+
+
+
+If these listings have hosts that are superhosts, the listings have a better chance of being better maintained and of higher quality to stay in. 
+
+
+
+```{r}
+#getting rid of NA values for host_is_superhost in the original data-set
+super_filtered_airbnb <- feb_21_airbnb %>%
+  filter(!is.na(host_is_superhost))
+
+#mapping the NA value filtered host_is_superhost values
+super_filtered_borders <- c(bottom  = min(super_filtered_airbnb$latitude), 
+                top = max(super_filtered_airbnb$latitude),
+                left = min(super_filtered_airbnb$longitude),
+                right = max(super_filtered_airbnb$longitude))
+map2 <- get_stamenmap(super_filtered_borders, maptype = "toner-lite")
+ggmap(map2) + geom_point(data = super_filtered_airbnb, mapping = aes(x = longitude, y = latitude, 
+                                               col = host_is_superhost)) + ggtitle("Feb 2021 Superhosts")
+```
+
+
+
+We can see that there does exists a good amount of superhost listings, but ultimately it looks like there is more hosts that do not have superhost status.
+
+
+
+
+
+## Bedrooms Map:
+
+
+
+To also get a sense of listing quality, we can plot bedroom amount on the map.
+
+
+```{r}
+#getting rid of NA values for host_is_superhost in the original data-set
+bedrooms_filtered_airbnb <- feb_21_airbnb %>%
+  filter(!is.na(bedrooms))
+
+#mapping the NA value filtered host_is_superhost values
+bedrooms_filtered_borders <- c(bottom  = min(bedrooms_filtered_airbnb$latitude), 
+                top = max(bedrooms_filtered_airbnb$latitude),
+                left = min(bedrooms_filtered_airbnb$longitude),
+                right = max(bedrooms_filtered_airbnb$longitude))
+map3 <- get_stamenmap(bedrooms_filtered_borders, maptype = "toner-lite")
+ggmap(map3) + geom_point(data = bedrooms_filtered_airbnb, mapping = aes(x = longitude, y = latitude, 
+                                               col = bedrooms)) + scale_colour_distiller(palette = "RdYlBu") + ggtitle("Feb 2021 Bedroom Amount")
+```
+
+
+
+We can see an overwhelming amount of listings have less than ~5 bedrooms. This makes sense. Bedroom space is very hard to come by in the city, and these listings reflect that.
+
+
+
+
+## Cleanliness Map:
+
+
+Regardless of the pandemic, cleanliness is a good indicator of Airbnb listing quality. If a listing has received low review scores for cleanliness, it is unlikely anyone will feel comfortable living in that property. 
+
+
+We can gain a view of Toronto Airbnb listing cleanliness on a map of the city.
+
+
+
+```{r}
+#getting rid of NA values for review_scores_cleanliness in the original data-set
+clean_filtered_airbnb <- feb_21_airbnb %>%
+  filter(!is.na(review_scores_cleanliness))
+
+#mapping the NA value filtered out review_scores_cleanliness values
+clean_filtered_borders <- c(bottom  = min(clean_filtered_airbnb$latitude), 
+                top = max(clean_filtered_airbnb$latitude),
+                left = min(clean_filtered_airbnb$longitude),
+                right = max(clean_filtered_airbnb$longitude))
+map4 <- get_stamenmap(clean_filtered_borders, maptype = "toner-lite")
+ggmap(map4) + geom_point(data = clean_filtered_airbnb, mapping = aes(x = longitude, y = latitude, 
+                                               col = review_scores_cleanliness)) + scale_colour_distiller(palette = "RdYlBu") + ggtitle("Feb 2021 Cleanliness Ratings")
+```
+
+
+
+We can see there is definitely many listings that have review scores for cleanliness that are 6 and below. These listings are likely not very well maintained and are possibly used just as a short-term rental property without a host living there.
+
+
+I would not recommend any listings that are below a cleanliness rating of 6 to anyone, especially during a pandemic.
+
+
+
+
+
+
+
+## Initial Linear Modelling of Feburary 2021 Airbnb data:
+
+
+
+We can start fitting simple linear models with the variables we are interested in. 
+
+
+
+
+### Cleaning variables before modelling:
+
+
+We can see that bathroom amount is categorized as a string. For analysis of bathroom amount, it would make sense to extract the numeric value in the string. 
+
+
+```{r}
+glimpse(feb_21_airbnb$bathrooms_text)
+```
+
+
+
+
+
+```{r warning=FALSE, message=FALSE}
+#parse_number() drops any non-numeric characters
+feb_21_airbnb$bathrooms_numeric <- parse_number(feb_21_airbnb$bathrooms_text)
+```
+
+
+
+
+
+
+We must also make sure that price is an integer and not a character. 
+
+```{r}
+#stripping away $ and , from price
+feb_21_airbnb <- feb_21_airbnb %>% 
+  mutate(price = str_remove(price, "\\$"),
+         price = str_remove(price, ","),
+         price = as.integer(price)
+         )
+
+#removing NAs from price
+feb_21_airbnb <- feb_21_airbnb %>%
+  filter(!is.na(price))
+```
+
+
+
+
+
+
+### Test set and train set:
+
+
+
+We can now split the data into a test set and training set to test the accuracy of our model in prediction later on.
+
+```{r}
+set.seed(496)
+
+#splitting the data
+feb_21_airbnb_split <- 
+  feb_21_airbnb %>%
+  initial_split(prop = 3/4)
+
+#creating the test and train set
+feb_21_airbnb_train <- training(feb_21_airbnb_split)
+feb_21_airbnb_test <- testing(feb_21_airbnb_split)
+
+```
+
+
+### Modelling price with bedrooms:
+
+
+```{r}
+#removing NAs from bedrooms
+feb_21_airbnb_train <- feb_21_airbnb_train %>%
+  filter(!is.na(bedrooms))
+
+#price ~ bedrooms model
+price_and_bedrooms <- lm(price ~ bedrooms, data = feb_21_airbnb_train)
+summary(price_and_bedrooms)
+```
+
+
+We can see that the p-value for the bedrooms covariate is < 2e-16 when that variable is the only predictor.
+
+
+
+### Modelling price with bathrooms:
+
+
+
+
+```{r}
+#removing any possible NAs still in bathrooms_numeric 
+feb_21_airbnb_train <- feb_21_airbnb_train %>%
+  filter(!is.na(bathrooms_numeric))
+
+#price ~ bathrooms model
+price_and_bathrooms <- lm(price ~ bathrooms_numeric, data = feb_21_airbnb_train)
+summary(price_and_bathrooms)
+```
+
+
+We can see that the p-value for the bathrooms covariate is < 2e-16 when that variable is the only predictor.
+
+
+
+
+
+### Modelling price with neighbourhood:
+
+
+
+```{r}
+#removing any possible NAs in neighbourhood_cleansed
+feb_21_airbnb_train <- feb_21_airbnb_train %>%
+  filter(!is.na(neighbourhood_cleansed))
+
+#price ~ neighbourhood model
+price_and_neighbourhood <- lm(price ~ neighbourhood_cleansed, data = feb_21_airbnb_train)
+summary(price_and_neighbourhood)
+```
+
+
+
+We can see that all the neighbourhood levels within the neighbourhood_cleansed covariate have p-values that are greater than 0.05, which indicates none of these levels are significant in predicting price when neighbourhood_cleansed is the only predictor included in the linear model.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+### Modelling Price with cleanliness score:
+
+
+```{r}
+#removing any possible NAs still in review_scores_cleanliness 
+feb_21_airbnb_train <- feb_21_airbnb_train %>%
+  filter(!is.na(review_scores_cleanliness))
+
+#price ~ cleanliness model
+price_and_cleanliness <- lm(price ~ review_scores_cleanliness, data = feb_21_airbnb_train)
+summary(price_and_cleanliness)
+```
+
+
+
+We can see that the p-value for the cleanliness score covariate is 0.07707 when that variable is the only predictor.
+
+
+
+
+### Modelling Price with overall review score
+
+
+```{r}
+#removing any possible NAs in review_scores_rating 
+feb_21_airbnb_train <- feb_21_airbnb_train %>%
+  filter(!is.na(review_scores_rating))
+
+#price ~ overall review score  model
+price_and_reviewscore <- lm(price ~ review_scores_rating, data = feb_21_airbnb_train)
+summary(price_and_reviewscore)
+```
+
+
+
+
+
+We can see that the p-value for the overall review score covariate is 0.29881 when that variable is the only predictor.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+### Modelling price with reviews per month:
+
+
+
+```{r}
+#removing any possible NAs in reviews_per_month 
+feb_21_airbnb_train <- feb_21_airbnb_train %>%
+  filter(!is.na(reviews_per_month))
+
+#price ~ reviews per month model
+price_and_reviewspmonth <- lm(price ~ reviews_per_month, data = feb_21_airbnb_train)
+summary(price_and_reviewspmonth)
+```
+
+
+
+We can see that the p-value for the reviews_per_month covariate is 0.219 when that variable is the only predictor.
+
+
+
+### Modelling price with host response rate:
+
+
+
+```{r}
+#removing any possible NAs in host_response_rate 
+feb_21_airbnb_train <- feb_21_airbnb_train %>%
+  filter(!is.na(host_response_rate))
+
+#price ~ host response rate model
+price_and_hostresp<- lm(price ~ host_response_rate, data = feb_21_airbnb_train)
+summary(price_and_hostresp)
+```
+
+
+
+
+We can see there are two significant host response rates when host response rate is the only variable included at the 0.05 significance level. These are host_response_rate66% and host_response_rate10%.
+
+
+
+
+### Modelling price with minimum nights available to book:
+
+
+
+
+```{r}
+#removing any possible NAs in minimum_nights
+feb_21_airbnb_train <- feb_21_airbnb_train %>%
+  filter(!is.na(minimum_nights))
+
+#price ~ minimum nights model
+price_and_minnights <- lm(price ~ minimum_nights, data = feb_21_airbnb_train)
+summary(price_and_minnights)
+```
+
+
+
+We can see that the p-value for the minimum_nights covariate is 1.65e-06 when that variable is the only predictor.
+
+
+
+
+
+
+### Modelling price with maximum nights available to book:
+
+
+
+```{r}
+#removing any possible NAs in maximum_nights
+feb_21_airbnb_train <- feb_21_airbnb_train %>%
+  filter(!is.na(maximum_nights))
+
+#price ~ maximum nights model
+price_and_maxnights <- lm(price ~ maximum_nights, data = feb_21_airbnb_train)
+summary(price_and_maxnights)
+```
+
+
+
+
+We can see that the p-value for the maximum_nights covariate is 0.645 when that variable is the only predictor.
+
+
+
+
+
+
+
+### Modelling price with total amount of host listings for a given host:
+
+
+
+```{r}
+#removing any possible NAs in host_total_listings_count
+feb_21_airbnb_train <- feb_21_airbnb_train %>%
+  filter(!is.na(host_total_listings_count))
+
+#price ~ amount of host listings model
+price_and_totallists <- lm(price ~ host_total_listings_count, data = feb_21_airbnb_train)
+summary(price_and_totallists)
+```
+
+
+
+
+
+We can see that the p-value for the host_total_listings_count covariate is 0.402 when that variable is the only predictor.
+
+
+
+
+
+
+
+
+### Modelling price with if a host is a Superhost or not:
+
+
+
+
+We can see that the variable host_is_superhost is a logical variable. This indicates it has levels TRUE and FALSE.
+
+```{r}
+#viewing type of variable for the host_is_superhost variable
+typeof(feb_21_airbnb_train$host_is_superhost)
+```
+
+
+
+
+```{r}
+#removing any possible NAs in host_is_superhost
+feb_21_airbnb_train <- feb_21_airbnb_train %>%
+  filter(!is.na(host_is_superhost))
+
+#price ~ is a superhost model without an intercept
+price_and_superhost <- lm(price ~ 0 + host_is_superhost, data = feb_21_airbnb_train)
+summary(price_and_superhost)
+
+
+#price ~ is a superhost model with an intercept
+price_and_superhost <- lm(price ~ host_is_superhost, data = feb_21_airbnb_train)
+summary(price_and_superhost)
+```
+
+
+
+
+We can see that when no intercept is included in the model, that both levels of host_is_superhost are significant at the 0.05 significance level. However, when an intercept is included in the model, host_is_superhostTRUE is not significant.
+
+
+
+
+### Modelling price with the selected possibly relevant variables:
+
+
+
+
+Using AIC:
+
+
+```{r}
+#fitting an initial model with all the possibly relevant variables
+initial_full_model <- lm(price ~ bedrooms + 
+                        bathrooms_numeric + 
+                        neighbourhood_cleansed +
+                        review_scores_cleanliness +
+                        review_scores_rating +
+                        reviews_per_month +
+                        host_response_rate +
+                        minimum_nights +
+                        maximum_nights +
+                        host_is_superhost,
+                        data = feb_21_airbnb_train)
+summary(initial_full_model)
+
+stats::step(initial_full_model, direction = "backward")
+
+```
+
+
+
+
+
+
+We can see from the AIC backwards selection that the resulting linear model has variables:
+
+
+> bedrooms 
+
+> bathrooms_numeric
+
+> minimum_nights
+
+
+
+
+We can now fit a model with the selected variables
+
+```{r}
+#variable selected model
+variable_selected_mod <- lm(formula = price ~ bedrooms + bathrooms_numeric +
+    minimum_nights, data = feb_21_airbnb_train)
+
+
+#summary of variable selected model
+summary(variable_selected_mod)
+```
+
+
+
+
+We can see that bedrooms, bathrooms_numeric, review_scores_cleanliness, and minimum_nights are all significant at 0.05.
+
+
+
+
+
+
+
+
+
+
+### Prediction of Price:
+
+
+We can now see how the model preforms in prediction.
+
+
+
+
+```{r}
+#initial price model
+price_inital_model <- lm(formula = price ~ bedrooms + bathrooms_numeric +
+    minimum_nights, data = feb_21_airbnb_train)
+
+
+summary(price_inital_model)
+#making price predictions
+price_predictions <- predict(price_inital_model, feb_21_airbnb_test)
+
+
+#RMSE function
+rmse <-function(x, y)sqrt(mean((x-y)^2))
+#computing RMSE
+rmse(price_predictions, feb_21_airbnb_test$price)
+```
+
+
+
+
+
+
+We can see that both the RMSE is high, and the R-squared for the model is low. This indicates that this linear regression model preformed poorly in predicting price in February 2021.  
+
+
+
+
+
+
+
+
+
+
+
+
+

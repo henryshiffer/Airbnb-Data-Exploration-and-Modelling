@@ -11,6 +11,7 @@ library(ggmap)
 library(varhandle)
 library(caret)
 library(readr)
+library(yardstick)
 ```
 
 In this section will continue exploring Toronto’s February 2021 Airbnb
@@ -122,22 +123,20 @@ before these values can be mapped.
 rsr_filtered_airbnb <- feb_21_airbnb %>%
   filter(!is.na(review_scores_rating))
 
+#scale_colour_distiller(palette = "RdYlBu")
 #mapping the NA value filtered review_scores_ratings values
 rsr_filtered_borders <- c(bottom  = min(rsr_filtered_airbnb$latitude), 
                 top = max(rsr_filtered_airbnb$latitude),
                 left = min(rsr_filtered_airbnb$longitude),
                 right = max(rsr_filtered_airbnb$longitude))
 map1 <- get_stamenmap(rsr_filtered_borders, maptype = "toner-lite")
-```
-
-    ## Source : http://tile.stamen.com/toner-lite/10/285/373.png
-
-    ## Source : http://tile.stamen.com/toner-lite/10/286/373.png
-
-``` r
 ggmap(map1) + geom_point(data = rsr_filtered_airbnb, mapping = aes(x = longitude, y = latitude, 
-                                               col = review_scores_rating)) + scale_colour_distiller(palette = "RdYlBu") + ggtitle("Feb 2021 Review Scores")
+                                               col = review_scores_rating)) +
+  scale_colour_distiller(palette = "RdYlBu") +
+  geom_jitter(alpha = 0.4) + ggtitle("Feb 2021 Review Scores")
 ```
+
+    ## Warning: Removed 3 rows containing missing values (geom_point).
 
 ![](More-Data-Exploration-Week-4---5_files/figure-gfm/unnamed-chunk-3-1.png)<!-- -->
 
@@ -176,8 +175,11 @@ super_filtered_borders <- c(bottom  = min(super_filtered_airbnb$latitude),
                 right = max(super_filtered_airbnb$longitude))
 map2 <- get_stamenmap(super_filtered_borders, maptype = "toner-lite")
 ggmap(map2) + geom_point(data = super_filtered_airbnb, mapping = aes(x = longitude, y = latitude, 
-                                               col = host_is_superhost)) + ggtitle("Feb 2021 Superhosts")
+                                               col = host_is_superhost)) + 
+  geom_jitter(alpha = 0.4) + ggtitle("Feb 2021 Superhosts")
 ```
+
+    ## Warning: Removed 4 rows containing missing values (geom_point).
 
 ![](More-Data-Exploration-Week-4---5_files/figure-gfm/unnamed-chunk-4-1.png)<!-- -->
 
@@ -202,8 +204,13 @@ bedrooms_filtered_borders <- c(bottom  = min(bedrooms_filtered_airbnb$latitude),
                 right = max(bedrooms_filtered_airbnb$longitude))
 map3 <- get_stamenmap(bedrooms_filtered_borders, maptype = "toner-lite")
 ggmap(map3) + geom_point(data = bedrooms_filtered_airbnb, mapping = aes(x = longitude, y = latitude, 
-                                               col = bedrooms)) + scale_colour_distiller(palette = "RdYlBu") + ggtitle("Feb 2021 Bedroom Amount")
+                                               col = bedrooms)) +
+  scale_colour_distiller(palette = "RdYlBu") +
+  geom_jitter(alpha = 0.4) +
+  ggtitle("Feb 2021 Bedroom Amount")
 ```
+
+    ## Warning: Removed 3 rows containing missing values (geom_point).
 
 ![](More-Data-Exploration-Week-4---5_files/figure-gfm/unnamed-chunk-5-1.png)<!-- -->
 
@@ -233,8 +240,13 @@ clean_filtered_borders <- c(bottom  = min(clean_filtered_airbnb$latitude),
                 right = max(clean_filtered_airbnb$longitude))
 map4 <- get_stamenmap(clean_filtered_borders, maptype = "toner-lite")
 ggmap(map4) + geom_point(data = clean_filtered_airbnb, mapping = aes(x = longitude, y = latitude, 
-                                               col = review_scores_cleanliness)) + scale_colour_distiller(palette = "RdYlBu") + ggtitle("Feb 2021 Cleanliness Ratings")
+                                               col = review_scores_cleanliness)) +
+  scale_colour_distiller(palette = "RdYlBu") +
+  geom_jitter(alpha = 0.4) +
+  ggtitle("Feb 2021 Cleanliness Ratings")
 ```
+
+    ## Warning: Removed 4 rows containing missing values (geom_point).
 
 ![](More-Data-Exploration-Week-4---5_files/figure-gfm/unnamed-chunk-6-1.png)<!-- -->
 
@@ -282,6 +294,25 @@ feb_21_airbnb <- feb_21_airbnb %>%
 feb_21_airbnb <- feb_21_airbnb %>%
   filter(!is.na(price))
 ```
+
+We can see that host response rates are coded as characters. We can code
+them as integers instead.
+
+``` r
+glimpse(feb_21_airbnb$host_response_rate)
+```
+
+    ##  chr [1:15832] "N/A" "N/A" "N/A" "N/A" "N/A" "100%" "100%" "100%" "N/A" ...
+
+``` r
+#stripping away % and from host_response_rate and converting to integer
+feb_21_airbnb <- feb_21_airbnb %>% 
+  mutate(host_response_rate = str_remove(host_response_rate, "\\%"),
+         host_response_rate = as.integer(host_response_rate)
+         )
+```
+
+    ## Warning in mask$eval_all_mutate(quo): NAs introduced by coercion
 
 ### Test set and train set:
 
@@ -804,80 +835,22 @@ summary(price_and_hostresp)
     ## lm(formula = price ~ host_response_rate, data = feb_21_airbnb_train)
     ## 
     ## Residuals:
-    ##     Min      1Q  Median      3Q     Max 
-    ##  -323.6   -67.6   -33.3    13.0 12857.7 
+    ##    Min     1Q Median     3Q    Max 
+    ## -119.9  -65.5  -31.5   16.5 3437.1 
     ## 
     ## Coefficients:
-    ##                        Estimate Std. Error t value Pr(>|t|)    
-    ## (Intercept)             141.224     15.775   8.953  < 2e-16 ***
-    ## host_response_rate10%   216.376     81.205   2.665  0.00772 ** 
-    ## host_response_rate100%  -20.233     16.320  -1.240  0.21509    
-    ## host_response_rate13%   -56.974     90.447  -0.630  0.52877    
-    ## host_response_rate14%  -101.224    252.394  -0.401  0.68839    
-    ## host_response_rate17%   -36.224    252.394  -0.144  0.88588    
-    ## host_response_rate20%   -81.224     96.507  -0.842  0.40002    
-    ## host_response_rate22%  -126.224    252.394  -0.500  0.61701    
-    ## host_response_rate25%    12.276    126.934   0.097  0.92295    
-    ## host_response_rate29%   -21.224    252.394  -0.084  0.93299    
-    ## host_response_rate30%   -91.349     90.447  -1.010  0.31254    
-    ## host_response_rate33%   -50.652     69.147  -0.733  0.46386    
-    ## host_response_rate36%     6.776    113.752   0.060  0.95250    
-    ## host_response_rate37%   -78.224    252.394  -0.310  0.75662    
-    ## host_response_rate39%  -119.890     74.409  -1.611  0.10717    
-    ## host_response_rate40%   -37.524     81.205  -0.462  0.64403    
-    ## host_response_rate43%   -42.224    146.288  -0.289  0.77287    
-    ## host_response_rate44%   -98.557    146.288  -0.674  0.50051    
-    ## host_response_rate47%   -30.474     90.447  -0.337  0.73618    
-    ## host_response_rate48%  -110.224    126.934  -0.868  0.38523    
-    ## host_response_rate50%   -14.321     31.979  -0.448  0.65429    
-    ## host_response_rate52%  -111.224    252.394  -0.441  0.65946    
-    ## host_response_rate53%  -113.224    113.752  -0.995  0.31960    
-    ## host_response_rate56%   357.776    252.394   1.418  0.15637    
-    ## host_response_rate57%   -36.224    178.818  -0.203  0.83947    
-    ## host_response_rate59%   -96.474    126.934  -0.760  0.44726    
-    ## host_response_rate60%   -32.853     50.980  -0.644  0.51931    
-    ## host_response_rate62%  -115.724     81.205  -1.425  0.15417    
-    ## host_response_rate66%  -125.024     52.792  -2.368  0.01790 *  
-    ## host_response_rate67%    -7.820     38.329  -0.204  0.83835    
-    ## host_response_rate68%   -81.849     90.447  -0.905  0.36552    
-    ## host_response_rate69%   -31.224    252.394  -0.124  0.90155    
-    ## host_response_rate70%    68.738     51.859   1.325  0.18505    
-    ## host_response_rate71%   -13.890    146.288  -0.095  0.92436    
-    ## host_response_rate72%   -34.557    146.288  -0.236  0.81326    
-    ## host_response_rate73%   -53.890    104.041  -0.518  0.60449    
-    ## host_response_rate75%    -9.251     44.849  -0.206  0.83658    
-    ## host_response_rate76%  -112.224    252.394  -0.445  0.65659    
-    ## host_response_rate77%   -41.890    146.288  -0.286  0.77461    
-    ## host_response_rate79%    -2.366     96.507  -0.025  0.98044    
-    ## host_response_rate80%   -19.049     31.411  -0.606  0.54424    
-    ## host_response_rate82%   -10.057    104.041  -0.097  0.92300    
-    ## host_response_rate83%   -17.324     81.205  -0.213  0.83107    
-    ## host_response_rate85%   -70.795     96.507  -0.734  0.46323    
-    ## host_response_rate86%   -55.224     55.974  -0.987  0.32387    
-    ## host_response_rate87%   -67.224    146.288  -0.460  0.64587    
-    ## host_response_rate88%   -20.566     32.920  -0.625  0.53218    
-    ## host_response_rate89%    43.226     58.494   0.739  0.45993    
-    ## host_response_rate90%   -14.477     26.376  -0.549  0.58311    
-    ## host_response_rate91%   -72.518     63.098  -1.149  0.25048    
-    ## host_response_rate92%    -8.932     53.784  -0.166  0.86811    
-    ## host_response_rate93%   -17.604     57.188  -0.308  0.75821    
-    ## host_response_rate94%    25.419     37.175   0.684  0.49413    
-    ## host_response_rate95%   -60.289     40.352  -1.494  0.13519    
-    ## host_response_rate96%   -30.193     35.001  -0.863  0.38836    
-    ## host_response_rate97%   -36.692     30.163  -1.216  0.22384    
-    ## host_response_rate98%   -31.853     35.669  -0.893  0.37188    
-    ## host_response_rate99%    50.954     40.730   1.251  0.21096    
-    ## host_response_rateN/A     1.047     16.388   0.064  0.94904    
+    ##                     Estimate Std. Error t value Pr(>|t|)    
+    ## (Intercept)        132.88609    7.78545  17.069   <2e-16 ***
+    ## host_response_rate  -0.12389    0.08339  -1.486    0.137    
     ## ---
     ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
     ## 
-    ## Residual standard error: 251.9 on 8243 degrees of freedom
-    ## Multiple R-squared:  0.006258,   Adjusted R-squared:  -0.0007345 
-    ## F-statistic: 0.895 on 58 and 8243 DF,  p-value: 0.6995
+    ## Residual standard error: 146.1 on 5085 degrees of freedom
+    ## Multiple R-squared:  0.0004339,  Adjusted R-squared:  0.0002374 
+    ## F-statistic: 2.208 on 1 and 5085 DF,  p-value: 0.1374
 
-We can see there are two significant host response rates when host
-response rate is the only variable included at the 0.05 significance
-level. These are host\_response\_rate66% and host\_response\_rate10%.
+We can see that the p-value for the host\_response\_rate covariate is
+0.137 when that variable is the only predictor.
 
 ### Modelling price with minimum nights available to book:
 
@@ -896,19 +869,19 @@ summary(price_and_minnights)
     ## lm(formula = price ~ minimum_nights, data = feb_21_airbnb_train)
     ## 
     ## Residuals:
-    ##     Min      1Q  Median      3Q     Max 
-    ##  -745.4   -67.1   -33.9    17.1 12869.1 
+    ##    Min     1Q Median     3Q    Max 
+    ## -164.0  -64.0  -32.5   16.5 3447.5 
     ## 
     ## Coefficients:
     ##                 Estimate Std. Error t value Pr(>|t|)    
-    ## (Intercept)    113.26556    3.56402  31.780  < 2e-16 ***
-    ## minimum_nights   0.62916    0.08665   7.261 4.19e-13 ***
+    ## (Intercept)    118.83963    2.77494  42.826   <2e-16 ***
+    ## minimum_nights   0.12927    0.08385   1.542    0.123    
     ## ---
     ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
     ## 
-    ## Residual standard error: 251 on 8300 degrees of freedom
-    ## Multiple R-squared:  0.006312,   Adjusted R-squared:  0.006192 
-    ## F-statistic: 52.72 on 1 and 8300 DF,  p-value: 4.192e-13
+    ## Residual standard error: 146.1 on 5085 degrees of freedom
+    ## Multiple R-squared:  0.0004672,  Adjusted R-squared:  0.0002706 
+    ## F-statistic: 2.377 on 1 and 5085 DF,  p-value: 0.1232
 
 We can see that the p-value for the minimum\_nights covariate is
 1.65e-06 when that variable is the only predictor.
@@ -930,19 +903,19 @@ summary(price_and_maxnights)
     ## lm(formula = price ~ maximum_nights, data = feb_21_airbnb_train)
     ## 
     ## Residuals:
-    ##     Min      1Q  Median      3Q     Max 
-    ##  -116.7   -69.7   -34.7    16.3 12870.3 
+    ##    Min     1Q Median     3Q    Max 
+    ## -108.7  -63.7  -31.7   17.3 3448.3 
     ## 
     ## Coefficients:
     ##                  Estimate Std. Error t value Pr(>|t|)    
-    ## (Intercept)     1.297e+02  2.764e+00  46.920   <2e-16 ***
-    ## maximum_nights -1.067e-08  2.518e-07  -0.042    0.966    
+    ## (Intercept)     1.217e+02  2.049e+00  59.415   <2e-16 ***
+    ## maximum_nights -2.718e-09  1.461e-07  -0.019    0.985    
     ## ---
     ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
     ## 
-    ## Residual standard error: 251.8 on 8300 degrees of freedom
-    ## Multiple R-squared:  2.165e-07,  Adjusted R-squared:  -0.0001203 
-    ## F-statistic: 0.001797 on 1 and 8300 DF,  p-value: 0.9662
+    ## Residual standard error: 146.1 on 5085 degrees of freedom
+    ## Multiple R-squared:  6.805e-08,  Adjusted R-squared:  -0.0001966 
+    ## F-statistic: 0.000346 on 1 and 5085 DF,  p-value: 0.9852
 
 We can see that the p-value for the maximum\_nights covariate is 0.645
 when that variable is the only predictor.
@@ -964,19 +937,19 @@ summary(price_and_totallists)
     ## lm(formula = price ~ host_total_listings_count, data = feb_21_airbnb_train)
     ## 
     ## Residuals:
-    ##     Min      1Q  Median      3Q     Max 
-    ##  -117.3   -69.7   -35.3    16.9 12869.8 
+    ##    Min     1Q Median     3Q    Max 
+    ## -110.6  -63.6  -31.5   17.5 3448.7 
     ## 
     ## Coefficients:
-    ##                           Estimate Std. Error t value Pr(>|t|)    
-    ## (Intercept)               130.4472     2.9485  44.242   <2e-16 ***
-    ## host_total_listings_count  -0.1241     0.1667  -0.745    0.457    
+    ##                            Estimate Std. Error t value Pr(>|t|)    
+    ## (Intercept)               121.34071    2.22325  54.578   <2e-16 ***
+    ## host_total_listings_count   0.04516    0.10122   0.446    0.656    
     ## ---
     ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
     ## 
-    ## Residual standard error: 251.8 on 8300 degrees of freedom
-    ## Multiple R-squared:  6.679e-05,  Adjusted R-squared:  -5.369e-05 
-    ## F-statistic: 0.5544 on 1 and 8300 DF,  p-value: 0.4566
+    ## Residual standard error: 146.1 on 5085 degrees of freedom
+    ## Multiple R-squared:  3.914e-05,  Adjusted R-squared:  -0.0001575 
+    ## F-statistic: 0.1991 on 1 and 5085 DF,  p-value: 0.6555
 
 We can see that the p-value for the host\_total\_listings\_count
 covariate is 0.402 when that variable is the only predictor.
@@ -1008,19 +981,19 @@ summary(price_and_superhost)
     ## lm(formula = price ~ 0 + host_is_superhost, data = feb_21_airbnb_train)
     ## 
     ## Residuals:
-    ##     Min      1Q  Median      3Q     Max 
-    ##  -119.6   -68.6   -34.7    16.4 12867.4 
+    ##    Min     1Q Median     3Q    Max 
+    ## -107.7  -64.1  -31.7   17.3 3449.3 
     ## 
     ## Coefficients:
     ##                        Estimate Std. Error t value Pr(>|t|)    
-    ## host_is_superhostFALSE  132.552      3.357   39.48   <2e-16 ***
-    ## host_is_superhostTRUE   123.652      4.866   25.41   <2e-16 ***
+    ## host_is_superhostFALSE  120.749      2.664   45.33   <2e-16 ***
+    ## host_is_superhostTRUE   123.140      3.204   38.43   <2e-16 ***
     ## ---
     ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
     ## 
-    ## Residual standard error: 251.8 on 8300 degrees of freedom
-    ## Multiple R-squared:  0.2099, Adjusted R-squared:  0.2097 
-    ## F-statistic:  1102 on 2 and 8300 DF,  p-value: < 2.2e-16
+    ## Residual standard error: 146.1 on 5085 degrees of freedom
+    ## Multiple R-squared:  0.4098, Adjusted R-squared:  0.4096 
+    ## F-statistic:  1766 on 2 and 5085 DF,  p-value: < 2.2e-16
 
 ``` r
 #price ~ is a superhost model with an intercept
@@ -1033,19 +1006,19 @@ summary(price_and_superhost)
     ## lm(formula = price ~ host_is_superhost, data = feb_21_airbnb_train)
     ## 
     ## Residuals:
-    ##     Min      1Q  Median      3Q     Max 
-    ##  -119.6   -68.6   -34.7    16.4 12867.4 
+    ##    Min     1Q Median     3Q    Max 
+    ## -107.7  -64.1  -31.7   17.3 3449.3 
     ## 
     ## Coefficients:
     ##                       Estimate Std. Error t value Pr(>|t|)    
-    ## (Intercept)            132.552      3.357  39.483   <2e-16 ***
-    ## host_is_superhostTRUE   -8.900      5.912  -1.505    0.132    
+    ## (Intercept)            120.749      2.664  45.327   <2e-16 ***
+    ## host_is_superhostTRUE    2.391      4.167   0.574    0.566    
     ## ---
     ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
     ## 
-    ## Residual standard error: 251.8 on 8300 degrees of freedom
-    ## Multiple R-squared:  0.000273,   Adjusted R-squared:  0.0001525 
-    ## F-statistic: 2.266 on 1 and 8300 DF,  p-value: 0.1322
+    ## Residual standard error: 146.1 on 5085 degrees of freedom
+    ## Multiple R-squared:  6.474e-05,  Adjusted R-squared:  -0.0001319 
+    ## F-statistic: 0.3292 on 1 and 5085 DF,  p-value: 0.5661
 
 We can see that when no intercept is included in the model, that both
 levels of host\_is\_superhost are significant at the 0.05 significance
@@ -1080,538 +1053,697 @@ summary(initial_full_model)
     ##     data = feb_21_airbnb_train)
     ## 
     ## Residuals:
-    ##     Min      1Q  Median      3Q     Max 
-    ##  -625.8   -48.0   -13.4    21.2 12833.9 
+    ##    Min     1Q Median     3Q    Max 
+    ## -538.8  -41.8  -11.8   20.7 3373.8 
     ## 
     ## Coefficients:
     ##                                                             Estimate Std. Error
-    ## (Intercept)                                               -1.594e+02  9.180e+01
-    ## bedrooms                                                   5.952e+01  4.297e+00
-    ## bathrooms_numeric                                          3.716e+01  6.192e+00
-    ## neighbourhood_cleansedAgincourt South-Malvern West         8.611e+01  9.276e+01
-    ## neighbourhood_cleansedAlderwood                            1.167e+02  1.116e+02
-    ## neighbourhood_cleansedAnnex                                1.690e+02  8.805e+01
-    ## neighbourhood_cleansedBanbury-Don Mills                    1.062e+02  1.022e+02
-    ## neighbourhood_cleansedBathurst Manor                       2.455e+02  1.006e+02
-    ## neighbourhood_cleansedBay Street Corridor                  1.657e+02  8.829e+01
-    ## neighbourhood_cleansedBayview Village                      1.250e+02  9.426e+01
-    ## neighbourhood_cleansedBayview Woods-Steeles                1.235e+02  9.591e+01
-    ## neighbourhood_cleansedBedford Park-Nortown                 1.364e+02  9.763e+01
-    ## neighbourhood_cleansedBeechborough-Greenbrook              1.094e+02  1.265e+02
-    ## neighbourhood_cleansedBendale                              1.187e+02  9.813e+01
-    ## neighbourhood_cleansedBirchcliffe-Cliffside                9.850e+01  9.470e+01
-    ## neighbourhood_cleansedBlack Creek                         -2.041e+01  1.186e+02
-    ## neighbourhood_cleansedBlake-Jones                          1.110e+02  9.680e+01
-    ## neighbourhood_cleansedBriar Hill-Belgravia                 9.347e+01  9.650e+01
-    ## neighbourhood_cleansedBridle Path-Sunnybrook-York Mills    1.387e+02  1.099e+02
-    ## neighbourhood_cleansedBroadview North                      1.467e+02  1.022e+02
-    ## neighbourhood_cleansedBrookhaven-Amesbury                  8.317e+01  1.262e+02
-    ## neighbourhood_cleansedCabbagetown-South St.James Town      1.598e+02  9.009e+01
-    ## neighbourhood_cleansedCaledonia-Fairbank                   1.057e+02  1.026e+02
-    ## neighbourhood_cleansedCasa Loma                            1.719e+02  1.010e+02
-    ## neighbourhood_cleansedCentennial Scarborough               1.370e+02  1.262e+02
-    ## neighbourhood_cleansedChurch-Yonge Corridor                1.561e+02  8.835e+01
-    ## neighbourhood_cleansedClairlea-Birchmount                  1.287e+02  9.648e+01
-    ## neighbourhood_cleansedClanton Park                         1.290e+02  1.011e+02
-    ## neighbourhood_cleansedCliffcrest                           1.310e+02  1.038e+02
-    ## neighbourhood_cleansedCorso Italia-Davenport               1.199e+02  9.430e+01
-    ## neighbourhood_cleansedDanforth                             1.251e+02  9.596e+01
-    ## neighbourhood_cleansedDanforth East York                   1.328e+02  9.851e+01
-    ## neighbourhood_cleansedDon Valley Village                   1.095e+02  9.280e+01
-    ## neighbourhood_cleansedDorset Park                          1.036e+02  9.856e+01
-    ## neighbourhood_cleansedDovercourt-Wallace Emerson-Junction  1.132e+02  8.850e+01
-    ## neighbourhood_cleansedDownsview-Roding-CFB                 9.253e+01  9.937e+01
-    ## neighbourhood_cleansedDufferin Grove                       1.265e+02  9.047e+01
-    ## neighbourhood_cleansedEast End-Danforth                    1.109e+02  9.186e+01
-    ## neighbourhood_cleansedEdenbridge-Humber Valley             9.535e+01  1.261e+02
-    ## neighbourhood_cleansedEglinton East                        6.723e+01  1.038e+02
-    ## neighbourhood_cleansedElms-Old Rexdale                     1.393e+02  1.262e+02
-    ## neighbourhood_cleansedEnglemount-Lawrence                  1.126e+02  1.012e+02
-    ## neighbourhood_cleansedEringate-Centennial-West Deane       1.140e+02  9.893e+01
-    ## neighbourhood_cleansedEtobicoke West Mall                  1.677e+02  1.072e+02
-    ## neighbourhood_cleansedFlemingdon Park                      6.276e+01  1.186e+02
-    ## neighbourhood_cleansedForest Hill North                    1.142e+02  1.136e+02
-    ## neighbourhood_cleansedForest Hill South                    1.132e+02  1.135e+02
-    ## neighbourhood_cleansedGlenfield-Jane Heights               1.027e+02  1.117e+02
-    ## neighbourhood_cleansedGreenwood-Coxwell                    1.319e+02  9.177e+01
-    ## neighbourhood_cleansedGuildwood                            8.782e+01  1.261e+02
-    ## neighbourhood_cleansedHenry Farm                           1.323e+02  1.039e+02
-    ## neighbourhood_cleansedHigh Park North                      1.153e+02  9.159e+01
-    ## neighbourhood_cleansedHigh Park-Swansea                    1.432e+02  9.059e+01
-    ## neighbourhood_cleansedHighland Creek                       7.927e+01  9.890e+01
-    ## neighbourhood_cleansedHillcrest Village                    8.055e+01  9.716e+01
-    ## neighbourhood_cleansedHumber Heights-Westmount             1.246e+02  1.186e+02
-    ## neighbourhood_cleansedHumber Summit                        1.348e+02  1.392e+02
-    ## neighbourhood_cleansedHumbermede                           1.176e+02  1.186e+02
-    ## neighbourhood_cleansedHumewood-Cedarvale                   1.145e+02  9.519e+01
-    ## neighbourhood_cleansedIonview                              9.237e+01  9.938e+01
-    ## neighbourhood_cleansedIslington-City Centre West           1.060e+02  9.058e+01
-    ## neighbourhood_cleansedJunction Area                        1.160e+02  9.146e+01
-    ## neighbourhood_cleansedKeelesdale-Eglinton West             1.169e+02  1.045e+02
-    ## neighbourhood_cleansedKennedy Park                         8.895e+01  1.017e+02
-    ## neighbourhood_cleansedKensington-Chinatown                 1.346e+02  8.827e+01
-    ## neighbourhood_cleansedKingsview Village-The Westway        1.155e+02  1.058e+02
-    ## neighbourhood_cleansedKingsway South                       1.275e+02  1.389e+02
-    ## neighbourhood_cleansedL'Amoreaux                           6.710e+01  9.593e+01
-    ## neighbourhood_cleansedLambton Baby Point                   1.371e+02  1.184e+02
-    ## neighbourhood_cleansedLansing-Westgate                     1.089e+02  9.235e+01
-    ## neighbourhood_cleansedLawrence Park North                  1.133e+02  9.815e+01
-    ## neighbourhood_cleansedLawrence Park South                  1.524e+02  9.988e+01
-    ## neighbourhood_cleansedLeaside-Bennington                   1.575e+02  1.016e+02
-    ## neighbourhood_cleansedLittle Portugal                      1.587e+02  8.874e+01
-    ## neighbourhood_cleansedLong Branch                          1.086e+02  9.886e+01
-    ## neighbourhood_cleansedMalvern                              1.035e+02  9.772e+01
-    ## neighbourhood_cleansedMaple Leaf                           1.426e+02  1.221e+02
-    ## neighbourhood_cleansedMarkland Wood                        1.517e+02  1.230e+02
-    ## neighbourhood_cleansedMilliken                             1.084e+02  1.262e+02
-    ## neighbourhood_cleansedMimico (includes Humber Bay Shores)  1.427e+02  9.006e+01
-    ## neighbourhood_cleansedMorningside                          8.858e+01  1.097e+02
-    ## neighbourhood_cleansedMoss Park                            1.605e+02  8.841e+01
-    ## neighbourhood_cleansedMount Dennis                         8.482e+01  1.058e+02
-    ## neighbourhood_cleansedMount Olive-Silverstone-Jamestown    9.338e+01  1.137e+02
-    ## neighbourhood_cleansedMount Pleasant East                  1.458e+02  9.631e+01
-    ## neighbourhood_cleansedMount Pleasant West                  1.337e+02  9.039e+01
-    ## neighbourhood_cleansedNew Toronto                          1.708e+02  1.016e+02
-    ## neighbourhood_cleansedNewtonbrook East                     9.350e+01  9.227e+01
-    ## neighbourhood_cleansedNewtonbrook West                     2.665e+02  9.090e+01
-    ## neighbourhood_cleansedNiagara                              1.922e+02  8.778e+01
-    ## neighbourhood_cleansedNorth Riverdale                      1.455e+02  9.352e+01
-    ## neighbourhood_cleansedNorth St.James Town                  1.315e+02  9.135e+01
-    ## neighbourhood_cleansedO'Connor-Parkview                    1.056e+02  9.774e+01
-    ## neighbourhood_cleansedOakridge                             1.311e+02  1.006e+02
-    ## neighbourhood_cleansedOakwood Village                      9.788e+01  9.192e+01
-    ## neighbourhood_cleansedOld East York                        1.144e+02  9.897e+01
-    ## neighbourhood_cleansedPalmerston-Little Italy              1.420e+02  8.898e+01
-    ## neighbourhood_cleansedParkwoods-Donalda                    8.639e+01  9.500e+01
-    ## neighbourhood_cleansedPelmo Park-Humberlea                 1.016e+02  1.058e+02
-    ## neighbourhood_cleansedPlayter Estates-Danforth             1.292e+02  9.938e+01
-    ## neighbourhood_cleansedPleasant View                        8.212e+01  9.524e+01
-    ## neighbourhood_cleansedPrincess-Rosethorn                   1.103e+02  1.039e+02
-    ## neighbourhood_cleansedRegent Park                          1.618e+02  9.446e+01
-    ## neighbourhood_cleansedRexdale-Kipling                      1.177e+02  1.070e+02
-    ## neighbourhood_cleansedRockcliffe-Smythe                    1.559e+02  1.071e+02
-    ## neighbourhood_cleansedRoncesvalles                         1.413e+02  9.023e+01
-    ## neighbourhood_cleansedRosedale-Moore Park                  1.525e+02  9.332e+01
-    ## neighbourhood_cleansedRouge                                1.114e+02  1.035e+02
-    ## neighbourhood_cleansedRunnymede-Bloor West Village         1.281e+02  1.032e+02
-    ## neighbourhood_cleansedRustic                               5.671e+01  2.575e+02
-    ## neighbourhood_cleansedScarborough Village                  1.461e+02  1.263e+02
-    ## neighbourhood_cleansedSouth Parkdale                       1.159e+02  8.934e+01
-    ## neighbourhood_cleansedSouth Riverdale                      1.517e+02  8.881e+01
-    ## neighbourhood_cleansedSt.Andrew-Windfields                 1.686e+02  1.014e+02
-    ## neighbourhood_cleansedSteeles                              9.878e+01  9.848e+01
-    ## neighbourhood_cleansedStonegate-Queensway                  1.196e+02  9.275e+01
-    ## neighbourhood_cleansedTam O'Shanter-Sullivan               7.555e+01  9.662e+01
-    ## neighbourhood_cleansedTaylor-Massey                        1.019e+02  1.051e+02
-    ## neighbourhood_cleansedThe Beaches                          1.427e+02  9.115e+01
-    ## neighbourhood_cleansedThistletown-Beaumond Heights         1.342e+02  1.388e+02
-    ## neighbourhood_cleansedThorncliffe Park                     1.063e+02  1.084e+02
-    ## neighbourhood_cleansedTrinity-Bellwoods                    1.542e+02  8.827e+01
-    ## neighbourhood_cleansedUniversity                           1.344e+02  8.990e+01
-    ## neighbourhood_cleansedVictoria Village                     8.938e+01  1.047e+02
-    ## neighbourhood_cleansedWaterfront Communities-The Island    2.025e+02  8.695e+01
-    ## neighbourhood_cleansedWest Hill                            1.010e+02  9.990e+01
-    ## neighbourhood_cleansedWest Humber-Clairville               9.836e+01  9.447e+01
-    ## neighbourhood_cleansedWestminster-Branson                  1.011e+02  9.856e+01
-    ## neighbourhood_cleansedWeston                               1.237e+02  9.934e+01
-    ## neighbourhood_cleansedWeston-Pellam Park                   1.359e+02  9.667e+01
-    ## neighbourhood_cleansedWexford/Maryvale                     1.082e+02  9.420e+01
-    ## neighbourhood_cleansedWillowdale East                      1.237e+02  8.829e+01
-    ## neighbourhood_cleansedWillowdale West                      1.139e+02  9.228e+01
-    ## neighbourhood_cleansedWillowridge-Martingrove-Richview     8.716e+01  9.619e+01
-    ## neighbourhood_cleansedWoburn                               1.006e+02  9.850e+01
-    ## neighbourhood_cleansedWoodbine Corridor                    1.413e+02  9.470e+01
-    ## neighbourhood_cleansedWoodbine-Lumsden                     9.964e+01  1.048e+02
-    ## neighbourhood_cleansedWychwood                             1.460e+02  9.318e+01
-    ## neighbourhood_cleansedYonge-Eglinton                       1.358e+02  9.531e+01
-    ## neighbourhood_cleansedYonge-St.Clair                       1.582e+02  9.850e+01
-    ## neighbourhood_cleansedYork University Heights              8.655e+01  9.049e+01
-    ## neighbourhood_cleansedYorkdale-Glen Park                   1.222e+02  9.221e+01
-    ## review_scores_cleanliness                                  6.162e+00  3.945e+00
-    ## review_scores_rating                                      -5.113e-01  4.584e-01
-    ## reviews_per_month                                         -2.964e+00  2.086e+00
-    ## host_response_rate10%                                      1.314e+02  7.851e+01
-    ## host_response_rate100%                                    -1.461e+01  1.631e+01
-    ## host_response_rate13%                                      2.195e+01  8.997e+01
-    ## host_response_rate14%                                     -6.617e+01  2.435e+02
-    ## host_response_rate17%                                      2.751e+01  2.442e+02
-    ## host_response_rate20%                                     -5.970e+01  9.435e+01
-    ## host_response_rate22%                                     -4.353e+01  2.501e+02
-    ## host_response_rate25%                                     -6.510e+01  1.247e+02
-    ## host_response_rate29%                                     -4.009e+01  2.430e+02
-    ## host_response_rate30%                                     -4.348e+01  9.059e+01
-    ## host_response_rate33%                                     -1.071e+01  6.882e+01
-    ## host_response_rate36%                                      7.628e+00  1.216e+02
-    ## host_response_rate37%                                     -1.377e+02  2.458e+02
-    ## host_response_rate39%                                     -5.851e+01  7.890e+01
-    ## host_response_rate40%                                     -1.789e+01  7.939e+01
-    ## host_response_rate43%                                     -2.462e+01  1.414e+02
-    ## host_response_rate44%                                     -4.266e+01  1.426e+02
-    ## host_response_rate47%                                     -6.735e+01  8.766e+01
-    ## host_response_rate48%                                     -8.313e+01  1.240e+02
-    ## host_response_rate50%                                     -1.819e+01  3.128e+01
-    ## host_response_rate52%                                     -4.943e+01  2.448e+02
-    ## host_response_rate53%                                     -2.011e+02  1.128e+02
-    ## host_response_rate56%                                      1.444e+02  2.439e+02
-    ## host_response_rate57%                                     -3.125e+01  1.731e+02
-    ## host_response_rate59%                                     -4.787e+01  1.328e+02
-    ## host_response_rate60%                                     -8.440e+01  4.981e+01
-    ## host_response_rate62%                                     -1.076e+02  8.457e+01
-    ## host_response_rate66%                                     -6.885e+01  6.136e+01
-    ## host_response_rate67%                                     -1.408e+01  3.757e+01
-    ## host_response_rate68%                                      2.581e+01  9.149e+01
-    ## host_response_rate69%                                      2.591e+01  2.434e+02
-    ## host_response_rate70%                                      7.263e+01  5.066e+01
-    ## host_response_rate71%                                     -6.789e+01  1.410e+02
-    ## host_response_rate72%                                     -3.277e+01  1.423e+02
-    ## host_response_rate73%                                     -7.646e+01  1.008e+02
-    ## host_response_rate75%                                     -7.550e+00  4.376e+01
-    ## host_response_rate76%                                     -8.176e+01  2.435e+02
-    ## host_response_rate77%                                      5.907e+00  1.423e+02
-    ## host_response_rate79%                                     -2.250e+01  9.368e+01
-    ## host_response_rate80%                                     -3.522e+01  3.064e+01
-    ## host_response_rate82%                                      2.091e+00  1.007e+02
-    ## host_response_rate83%                                     -1.303e+01  7.883e+01
-    ## host_response_rate85%                                     -3.072e+01  9.559e+01
-    ## host_response_rate86%                                     -2.980e+01  5.542e+01
-    ## host_response_rate87%                                     -3.472e+01  1.417e+02
-    ## host_response_rate88%                                     -6.006e+01  3.219e+01
-    ## host_response_rate89%                                      8.115e+00  5.693e+01
-    ## host_response_rate90%                                     -1.951e+01  2.604e+01
-    ## host_response_rate91%                                     -3.334e+01  6.206e+01
-    ## host_response_rate92%                                     -1.690e+01  5.228e+01
-    ## host_response_rate93%                                     -8.937e+00  5.568e+01
-    ## host_response_rate94%                                     -2.231e+01  3.656e+01
-    ## host_response_rate95%                                     -4.454e+01  3.976e+01
-    ## host_response_rate96%                                     -1.618e+01  3.442e+01
-    ## host_response_rate97%                                     -1.545e+01  3.004e+01
-    ## host_response_rate98%                                     -1.409e+01  3.570e+01
-    ## host_response_rate99%                                      2.039e+01  3.995e+01
-    ## host_response_rateN/A                                      3.906e-01  1.614e+01
-    ## minimum_nights                                             5.619e-01  8.641e-02
-    ## maximum_nights                                             2.799e-08  2.430e-07
-    ## host_is_superhostTRUE                                     -4.197e+00  6.487e+00
+    ## (Intercept)                                               -1.229e+02  5.535e+01
+    ## bedrooms                                                   6.193e+01  2.759e+00
+    ## bathrooms_numeric                                          3.407e+01  4.036e+00
+    ## neighbourhood_cleansedAgincourt South-Malvern West         2.830e+01  5.593e+01
+    ## neighbourhood_cleansedAlderwood                            5.938e+01  6.851e+01
+    ## neighbourhood_cleansedAnnex                                1.025e+02  5.285e+01
+    ## neighbourhood_cleansedBanbury-Don Mills                    5.567e+01  6.438e+01
+    ## neighbourhood_cleansedBathurst Manor                       1.854e+02  6.338e+01
+    ## neighbourhood_cleansedBay Street Corridor                  1.052e+02  5.287e+01
+    ## neighbourhood_cleansedBayview Village                      6.568e+01  5.739e+01
+    ## neighbourhood_cleansedBayview Woods-Steeles                4.808e+01  5.659e+01
+    ## neighbourhood_cleansedBedford Park-Nortown                 4.915e+00  5.744e+01
+    ## neighbourhood_cleansedBeechborough-Greenbrook              3.688e+01  7.057e+01
+    ## neighbourhood_cleansedBendale                              5.768e+01  5.980e+01
+    ## neighbourhood_cleansedBirchcliffe-Cliffside                2.151e+01  5.688e+01
+    ## neighbourhood_cleansedBlack Creek                         -1.062e+02  7.062e+01
+    ## neighbourhood_cleansedBlake-Jones                          6.577e+01  5.943e+01
+    ## neighbourhood_cleansedBriar Hill-Belgravia                 3.054e+01  6.256e+01
+    ## neighbourhood_cleansedBridle Path-Sunnybrook-York Mills    5.625e+01  6.683e+01
+    ## neighbourhood_cleansedBroadview North                      1.690e+02  6.683e+01
+    ## neighbourhood_cleansedBrookhaven-Amesbury                  2.479e+01  7.052e+01
+    ## neighbourhood_cleansedCabbagetown-South St.James Town      1.142e+02  5.475e+01
+    ## neighbourhood_cleansedCaledonia-Fairbank                   4.246e+01  6.022e+01
+    ## neighbourhood_cleansedCasa Loma                            1.260e+02  6.682e+01
+    ## neighbourhood_cleansedCentennial Scarborough               7.986e+01  8.181e+01
+    ## neighbourhood_cleansedChurch-Yonge Corridor                1.081e+02  5.300e+01
+    ## neighbourhood_cleansedClairlea-Birchmount                  8.362e+01  5.906e+01
+    ## neighbourhood_cleansedClanton Park                         2.732e+01  5.838e+01
+    ## neighbourhood_cleansedCliffcrest                           5.341e+01  6.186e+01
+    ## neighbourhood_cleansedCorso Italia-Davenport               4.356e+01  5.567e+01
+    ## neighbourhood_cleansedDanforth                             7.040e+01  5.940e+01
+    ## neighbourhood_cleansedDanforth East York                   6.861e+01  6.071e+01
+    ## neighbourhood_cleansedDon Valley Village                   4.736e+01  5.744e+01
+    ## neighbourhood_cleansedDorset Park                          3.924e+01  5.905e+01
+    ## neighbourhood_cleansedDovercourt-Wallace Emerson-Junction  5.538e+01  5.329e+01
+    ## neighbourhood_cleansedDownsview-Roding-CFB                 2.589e+01  5.869e+01
+    ## neighbourhood_cleansedDufferin Grove                       6.817e+01  5.500e+01
+    ## neighbourhood_cleansedEast End-Danforth                    5.530e+01  5.506e+01
+    ## neighbourhood_cleansedEdenbridge-Humber Valley             6.390e+01  8.176e+01
+    ## neighbourhood_cleansedEglinton East                        3.189e+01  6.680e+01
+    ## neighbourhood_cleansedElms-Old Rexdale                     7.698e+01  7.318e+01
+    ## neighbourhood_cleansedEnglemount-Lawrence                  4.444e+01  6.068e+01
+    ## neighbourhood_cleansedEringate-Centennial-West Deane       5.435e+01  5.938e+01
+    ## neighbourhood_cleansedEtobicoke West Mall                  8.281e+01  7.049e+01
+    ## neighbourhood_cleansedFlemingdon Park                      4.658e+01  8.961e+01
+    ## neighbourhood_cleansedForest Hill North                    7.576e+01  7.676e+01
+    ## neighbourhood_cleansedForest Hill South                    4.803e+01  8.960e+01
+    ## neighbourhood_cleansedGlenfield-Jane Heights               3.799e+01  6.847e+01
+    ## neighbourhood_cleansedGreenwood-Coxwell                    7.314e+01  5.562e+01
+    ## neighbourhood_cleansedGuildwood                            2.482e+01  7.676e+01
+    ## neighbourhood_cleansedHenry Farm                           6.944e+01  6.183e+01
+    ## neighbourhood_cleansedHigh Park North                      4.804e+01  5.606e+01
+    ## neighbourhood_cleansedHigh Park-Swansea                    8.561e+01  5.438e+01
+    ## neighbourhood_cleansedHighland Creek                       1.905e+01  6.189e+01
+    ## neighbourhood_cleansedHillcrest Village                    8.948e+00  6.122e+01
+    ## neighbourhood_cleansedHumber Heights-Westmount             7.268e+01  7.326e+01
+    ## neighbourhood_cleansedHumber Summit                        5.454e+01  1.035e+02
+    ## neighbourhood_cleansedHumbermede                           7.127e+01  7.053e+01
+    ## neighbourhood_cleansedHumewood-Cedarvale                   5.705e+01  5.933e+01
+    ## neighbourhood_cleansedIonview                              1.607e+01  5.905e+01
+    ## neighbourhood_cleansedIslington-City Centre West           4.609e+01  5.511e+01
+    ## neighbourhood_cleansedJunction Area                        5.940e+01  5.540e+01
+    ## neighbourhood_cleansedKeelesdale-Eglinton West             4.000e+01  6.432e+01
+    ## neighbourhood_cleansedKennedy Park                         2.486e+01  5.898e+01
+    ## neighbourhood_cleansedKensington-Chinatown                 7.979e+01  5.302e+01
+    ## neighbourhood_cleansedKingsview Village-The Westway        6.143e+01  6.690e+01
+    ## neighbourhood_cleansedKingsway South                       6.937e+01  1.035e+02
+    ## neighbourhood_cleansedL'Amoreaux                          -5.458e+00  5.867e+01
+    ## neighbourhood_cleansedLambton Baby Point                   8.167e+01  7.676e+01
+    ## neighbourhood_cleansedLansing-Westgate                     4.597e+01  5.525e+01
+    ## neighbourhood_cleansedLawrence Park North                  5.988e+01  5.940e+01
+    ## neighbourhood_cleansedLawrence Park South                  6.705e+01  6.072e+01
+    ## neighbourhood_cleansedLeaside-Bennington                   1.127e+02  6.185e+01
+    ## neighbourhood_cleansedLittle Portugal                      1.057e+02  5.356e+01
+    ## neighbourhood_cleansedLong Branch                          4.364e+01  6.019e+01
+    ## neighbourhood_cleansedMalvern                              1.867e+01  5.551e+01
+    ## neighbourhood_cleansedMaple Leaf                           7.031e+01  7.319e+01
+    ## neighbourhood_cleansedMarkland Wood                        8.148e+01  7.317e+01
+    ## neighbourhood_cleansedMilliken                             4.345e+01  7.049e+01
+    ## neighbourhood_cleansedMimico (includes Humber Bay Shores)  1.083e+02  5.462e+01
+    ## neighbourhood_cleansedMorningside                          2.547e+01  6.431e+01
+    ## neighbourhood_cleansedMoss Park                            1.097e+02  5.297e+01
+    ## neighbourhood_cleansedMount Dennis                        -2.198e+00  6.432e+01
+    ## neighbourhood_cleansedMount Olive-Silverstone-Jamestown    4.197e+01  7.055e+01
+    ## neighbourhood_cleansedMount Pleasant East                  9.051e+01  6.019e+01
+    ## neighbourhood_cleansedMount Pleasant West                  7.815e+01  5.425e+01
+    ## neighbourhood_cleansedNew Toronto                          1.539e+02  6.017e+01
+    ## neighbourhood_cleansedNewtonbrook East                     2.440e+01  5.471e+01
+    ## neighbourhood_cleansedNewtonbrook West                     4.164e+01  5.458e+01
+    ## neighbourhood_cleansedNiagara                              1.283e+02  5.279e+01
+    ## neighbourhood_cleansedNorth Riverdale                      7.479e+01  5.674e+01
+    ## neighbourhood_cleansedNorth St.James Town                  7.736e+01  5.687e+01
+    ## neighbourhood_cleansedO'Connor-Parkview                    4.873e+01  5.873e+01
+    ## neighbourhood_cleansedOakridge                             1.076e+02  6.185e+01
+    ## neighbourhood_cleansedOakwood Village                      4.295e+01  5.599e+01
+    ## neighbourhood_cleansedOld East York                        5.463e+01  5.907e+01
+    ## neighbourhood_cleansedPalmerston-Little Italy              9.768e+01  5.354e+01
+    ## neighbourhood_cleansedParkwoods-Donalda                   -1.585e+00  6.187e+01
+    ## neighbourhood_cleansedPelmo Park-Humberlea                 4.469e+01  6.551e+01
+    ## neighbourhood_cleansedPlayter Estates-Danforth             6.809e+01  6.072e+01
+    ## neighbourhood_cleansedPleasant View                        2.694e+01  5.723e+01
+    ## neighbourhood_cleansedPrincess-Rosethorn                   5.658e+01  6.341e+01
+    ## neighbourhood_cleansedRegent Park                          1.169e+02  5.841e+01
+    ## neighbourhood_cleansedRexdale-Kipling                      3.047e+01  6.551e+01
+    ## neighbourhood_cleansedRockcliffe-Smythe                    5.674e+01  7.322e+01
+    ## neighbourhood_cleansedRoncesvalles                         9.167e+01  5.485e+01
+    ## neighbourhood_cleansedRosedale-Moore Park                  9.500e+01  5.839e+01
+    ## neighbourhood_cleansedRouge                                5.181e+01  6.253e+01
+    ## neighbourhood_cleansedRunnymede-Bloor West Village         4.774e+01  6.684e+01
+    ## neighbourhood_cleansedRustic                               8.585e-01  1.369e+02
+    ## neighbourhood_cleansedScarborough Village                  4.668e+01  8.962e+01
+    ## neighbourhood_cleansedSouth Parkdale                       5.240e+01  5.381e+01
+    ## neighbourhood_cleansedSouth Riverdale                      9.794e+01  5.346e+01
+    ## neighbourhood_cleansedSt.Andrew-Windfields                 1.263e+02  5.977e+01
+    ## neighbourhood_cleansedSteeles                              3.446e+01  6.018e+01
+    ## neighbourhood_cleansedStonegate-Queensway                  5.484e+01  5.550e+01
+    ## neighbourhood_cleansedTam O'Shanter-Sullivan               1.597e+01  5.763e+01
+    ## neighbourhood_cleansedTaylor-Massey                        4.227e+01  6.680e+01
+    ## neighbourhood_cleansedThe Beaches                          8.361e+01  5.484e+01
+    ## neighbourhood_cleansedThistletown-Beaumond Heights         6.979e+01  8.962e+01
+    ## neighbourhood_cleansedThorncliffe Park                     5.473e+01  6.846e+01
+    ## neighbourhood_cleansedTrinity-Bellwoods                    9.578e+01  5.292e+01
+    ## neighbourhood_cleansedUniversity                           5.751e+01  5.552e+01
+    ## neighbourhood_cleansedVictoria Village                     1.877e+01  6.339e+01
+    ## neighbourhood_cleansedWaterfront Communities-The Island    1.242e+02  5.193e+01
+    ## neighbourhood_cleansedWest Hill                            4.127e+01  5.872e+01
+    ## neighbourhood_cleansedWest Humber-Clairville               5.074e+01  5.722e+01
+    ## neighbourhood_cleansedWestminster-Branson                  3.385e+01  5.940e+01
+    ## neighbourhood_cleansedWeston                               4.554e+01  6.020e+01
+    ## neighbourhood_cleansedWeston-Pellam Park                   7.814e+01  5.786e+01
+    ## neighbourhood_cleansedWexford/Maryvale                     3.413e+01  5.602e+01
+    ## neighbourhood_cleansedWillowdale East                      6.398e+01  5.283e+01
+    ## neighbourhood_cleansedWillowdale West                      4.756e+01  5.591e+01
+    ## neighbourhood_cleansedWillowridge-Martingrove-Richview     2.738e+01  5.904e+01
+    ## neighbourhood_cleansedWoburn                               4.178e+01  5.814e+01
+    ## neighbourhood_cleansedWoodbine Corridor                    1.038e+02  5.902e+01
+    ## neighbourhood_cleansedWoodbine-Lumsden                     5.586e+01  6.338e+01
+    ## neighbourhood_cleansedWychwood                             7.622e+01  5.673e+01
+    ## neighbourhood_cleansedYonge-Eglinton                       7.044e+01  5.811e+01
+    ## neighbourhood_cleansedYonge-St.Clair                       8.937e+01  6.185e+01
+    ## neighbourhood_cleansedYork University Heights              3.398e+01  5.372e+01
+    ## neighbourhood_cleansedYorkdale-Glen Park                   5.812e+01  5.458e+01
+    ## review_scores_cleanliness                                  5.410e+00  2.873e+00
+    ## review_scores_rating                                      -8.281e-03  3.241e-01
+    ## reviews_per_month                                         -4.052e+00  1.217e+00
+    ## host_response_rate                                        -1.787e-01  7.747e-02
+    ## minimum_nights                                             4.815e-02  7.602e-02
+    ## maximum_nights                                             1.112e-08  1.272e-07
+    ## host_is_superhostTRUE                                      1.498e-01  3.999e+00
     ##                                                           t value Pr(>|t|)    
-    ## (Intercept)                                                -1.737  0.08250 .  
-    ## bedrooms                                                   13.852  < 2e-16 ***
-    ## bathrooms_numeric                                           6.002 2.03e-09 ***
-    ## neighbourhood_cleansedAgincourt South-Malvern West          0.928  0.35323    
-    ## neighbourhood_cleansedAlderwood                             1.046  0.29551    
-    ## neighbourhood_cleansedAnnex                                 1.919  0.05501 .  
-    ## neighbourhood_cleansedBanbury-Don Mills                     1.038  0.29914    
-    ## neighbourhood_cleansedBathurst Manor                        2.442  0.01463 *  
-    ## neighbourhood_cleansedBay Street Corridor                   1.876  0.06063 .  
-    ## neighbourhood_cleansedBayview Village                       1.326  0.18489    
-    ## neighbourhood_cleansedBayview Woods-Steeles                 1.288  0.19783    
-    ## neighbourhood_cleansedBedford Park-Nortown                  1.398  0.16227    
-    ## neighbourhood_cleansedBeechborough-Greenbrook               0.865  0.38714    
-    ## neighbourhood_cleansedBendale                               1.210  0.22636    
-    ## neighbourhood_cleansedBirchcliffe-Cliffside                 1.040  0.29828    
-    ## neighbourhood_cleansedBlack Creek                          -0.172  0.86332    
-    ## neighbourhood_cleansedBlake-Jones                           1.147  0.25133    
-    ## neighbourhood_cleansedBriar Hill-Belgravia                  0.969  0.33277    
-    ## neighbourhood_cleansedBridle Path-Sunnybrook-York Mills     1.262  0.20712    
-    ## neighbourhood_cleansedBroadview North                       1.436  0.15116    
-    ## neighbourhood_cleansedBrookhaven-Amesbury                   0.659  0.50981    
-    ## neighbourhood_cleansedCabbagetown-South St.James Town       1.773  0.07619 .  
-    ## neighbourhood_cleansedCaledonia-Fairbank                    1.031  0.30280    
-    ## neighbourhood_cleansedCasa Loma                             1.701  0.08891 .  
-    ## neighbourhood_cleansedCentennial Scarborough                1.086  0.27756    
-    ## neighbourhood_cleansedChurch-Yonge Corridor                 1.767  0.07723 .  
-    ## neighbourhood_cleansedClairlea-Birchmount                   1.334  0.18231    
-    ## neighbourhood_cleansedClanton Park                          1.275  0.20217    
-    ## neighbourhood_cleansedCliffcrest                            1.261  0.20722    
-    ## neighbourhood_cleansedCorso Italia-Davenport                1.272  0.20344    
-    ## neighbourhood_cleansedDanforth                              1.304  0.19228    
-    ## neighbourhood_cleansedDanforth East York                    1.348  0.17754    
-    ## neighbourhood_cleansedDon Valley Village                    1.180  0.23819    
-    ## neighbourhood_cleansedDorset Park                           1.051  0.29334    
-    ## neighbourhood_cleansedDovercourt-Wallace Emerson-Junction   1.279  0.20110    
-    ## neighbourhood_cleansedDownsview-Roding-CFB                  0.931  0.35180    
-    ## neighbourhood_cleansedDufferin Grove                        1.399  0.16195    
-    ## neighbourhood_cleansedEast End-Danforth                     1.207  0.22752    
-    ## neighbourhood_cleansedEdenbridge-Humber Valley              0.756  0.44946    
-    ## neighbourhood_cleansedEglinton East                         0.647  0.51736    
-    ## neighbourhood_cleansedElms-Old Rexdale                      1.104  0.26980    
-    ## neighbourhood_cleansedEnglemount-Lawrence                   1.112  0.26612    
-    ## neighbourhood_cleansedEringate-Centennial-West Deane        1.152  0.24919    
-    ## neighbourhood_cleansedEtobicoke West Mall                   1.565  0.11767    
-    ## neighbourhood_cleansedFlemingdon Park                       0.529  0.59662    
-    ## neighbourhood_cleansedForest Hill North                     1.005  0.31502    
-    ## neighbourhood_cleansedForest Hill South                     0.997  0.31863    
-    ## neighbourhood_cleansedGlenfield-Jane Heights                0.920  0.35759    
-    ## neighbourhood_cleansedGreenwood-Coxwell                     1.438  0.15056    
-    ## neighbourhood_cleansedGuildwood                             0.696  0.48632    
-    ## neighbourhood_cleansedHenry Farm                            1.273  0.20303    
-    ## neighbourhood_cleansedHigh Park North                       1.259  0.20802    
-    ## neighbourhood_cleansedHigh Park-Swansea                     1.581  0.11394    
-    ## neighbourhood_cleansedHighland Creek                        0.801  0.42288    
-    ## neighbourhood_cleansedHillcrest Village                     0.829  0.40710    
-    ## neighbourhood_cleansedHumber Heights-Westmount              1.050  0.29357    
-    ## neighbourhood_cleansedHumber Summit                         0.968  0.33313    
-    ## neighbourhood_cleansedHumbermede                            0.991  0.32148    
-    ## neighbourhood_cleansedHumewood-Cedarvale                    1.203  0.22889    
-    ## neighbourhood_cleansedIonview                               0.930  0.35263    
-    ## neighbourhood_cleansedIslington-City Centre West            1.171  0.24183    
-    ## neighbourhood_cleansedJunction Area                         1.268  0.20469    
-    ## neighbourhood_cleansedKeelesdale-Eglinton West              1.119  0.26318    
-    ## neighbourhood_cleansedKennedy Park                          0.875  0.38181    
-    ## neighbourhood_cleansedKensington-Chinatown                  1.525  0.12736    
-    ## neighbourhood_cleansedKingsview Village-The Westway         1.091  0.27534    
-    ## neighbourhood_cleansedKingsway South                        0.918  0.35866    
-    ## neighbourhood_cleansedL'Amoreaux                            0.700  0.48424    
-    ## neighbourhood_cleansedLambton Baby Point                    1.157  0.24725    
-    ## neighbourhood_cleansedLansing-Westgate                      1.179  0.23836    
-    ## neighbourhood_cleansedLawrence Park North                   1.154  0.24845    
-    ## neighbourhood_cleansedLawrence Park South                   1.525  0.12721    
-    ## neighbourhood_cleansedLeaside-Bennington                    1.551  0.12098    
-    ## neighbourhood_cleansedLittle Portugal                       1.789  0.07370 .  
-    ## neighbourhood_cleansedLong Branch                           1.098  0.27217    
-    ## neighbourhood_cleansedMalvern                               1.059  0.28963    
-    ## neighbourhood_cleansedMaple Leaf                            1.168  0.24275    
-    ## neighbourhood_cleansedMarkland Wood                         1.234  0.21741    
-    ## neighbourhood_cleansedMilliken                              0.859  0.39018    
-    ## neighbourhood_cleansedMimico (includes Humber Bay Shores)   1.585  0.11301    
-    ## neighbourhood_cleansedMorningside                           0.808  0.41931    
-    ## neighbourhood_cleansedMoss Park                             1.815  0.06956 .  
-    ## neighbourhood_cleansedMount Dennis                          0.801  0.42291    
-    ## neighbourhood_cleansedMount Olive-Silverstone-Jamestown     0.821  0.41143    
-    ## neighbourhood_cleansedMount Pleasant East                   1.514  0.12998    
-    ## neighbourhood_cleansedMount Pleasant West                   1.479  0.13914    
-    ## neighbourhood_cleansedNew Toronto                           1.681  0.09273 .  
-    ## neighbourhood_cleansedNewtonbrook East                      1.013  0.31092    
-    ## neighbourhood_cleansedNewtonbrook West                      2.931  0.00338 ** 
-    ## neighbourhood_cleansedNiagara                               2.189  0.02860 *  
-    ## neighbourhood_cleansedNorth Riverdale                       1.556  0.11983    
-    ## neighbourhood_cleansedNorth St.James Town                   1.440  0.15003    
-    ## neighbourhood_cleansedO'Connor-Parkview                     1.081  0.27989    
-    ## neighbourhood_cleansedOakridge                              1.304  0.19241    
-    ## neighbourhood_cleansedOakwood Village                       1.065  0.28695    
-    ## neighbourhood_cleansedOld East York                         1.156  0.24769    
-    ## neighbourhood_cleansedPalmerston-Little Italy               1.596  0.11058    
-    ## neighbourhood_cleansedParkwoods-Donalda                     0.909  0.36320    
-    ## neighbourhood_cleansedPelmo Park-Humberlea                  0.960  0.33691    
-    ## neighbourhood_cleansedPlayter Estates-Danforth              1.300  0.19358    
-    ## neighbourhood_cleansedPleasant View                         0.862  0.38863    
-    ## neighbourhood_cleansedPrincess-Rosethorn                    1.061  0.28850    
-    ## neighbourhood_cleansedRegent Park                           1.713  0.08673 .  
-    ## neighbourhood_cleansedRexdale-Kipling                       1.100  0.27131    
-    ## neighbourhood_cleansedRockcliffe-Smythe                     1.456  0.14543    
-    ## neighbourhood_cleansedRoncesvalles                          1.566  0.11749    
-    ## neighbourhood_cleansedRosedale-Moore Park                   1.634  0.10233    
-    ## neighbourhood_cleansedRouge                                 1.076  0.28192    
-    ## neighbourhood_cleansedRunnymede-Bloor West Village          1.240  0.21487    
-    ## neighbourhood_cleansedRustic                                0.220  0.82572    
-    ## neighbourhood_cleansedScarborough Village                   1.157  0.24731    
-    ## neighbourhood_cleansedSouth Parkdale                        1.298  0.19447    
-    ## neighbourhood_cleansedSouth Riverdale                       1.708  0.08760 .  
-    ## neighbourhood_cleansedSt.Andrew-Windfields                  1.662  0.09650 .  
-    ## neighbourhood_cleansedSteeles                               1.003  0.31588    
-    ## neighbourhood_cleansedStonegate-Queensway                   1.289  0.19739    
-    ## neighbourhood_cleansedTam O'Shanter-Sullivan                0.782  0.43431    
-    ## neighbourhood_cleansedTaylor-Massey                         0.969  0.33266    
-    ## neighbourhood_cleansedThe Beaches                           1.566  0.11745    
-    ## neighbourhood_cleansedThistletown-Beaumond Heights          0.967  0.33365    
-    ## neighbourhood_cleansedThorncliffe Park                      0.981  0.32687    
-    ## neighbourhood_cleansedTrinity-Bellwoods                     1.748  0.08059 .  
-    ## neighbourhood_cleansedUniversity                            1.495  0.13508    
-    ## neighbourhood_cleansedVictoria Village                      0.853  0.39347    
-    ## neighbourhood_cleansedWaterfront Communities-The Island     2.329  0.01988 *  
-    ## neighbourhood_cleansedWest Hill                             1.011  0.31198    
-    ## neighbourhood_cleansedWest Humber-Clairville                1.041  0.29781    
-    ## neighbourhood_cleansedWestminster-Branson                   1.026  0.30498    
-    ## neighbourhood_cleansedWeston                                1.245  0.21299    
-    ## neighbourhood_cleansedWeston-Pellam Park                    1.406  0.15971    
-    ## neighbourhood_cleansedWexford/Maryvale                      1.149  0.25058    
-    ## neighbourhood_cleansedWillowdale East                       1.401  0.16127    
-    ## neighbourhood_cleansedWillowdale West                       1.234  0.21725    
-    ## neighbourhood_cleansedWillowridge-Martingrove-Richview      0.906  0.36487    
-    ## neighbourhood_cleansedWoburn                                1.022  0.30697    
-    ## neighbourhood_cleansedWoodbine Corridor                     1.492  0.13565    
-    ## neighbourhood_cleansedWoodbine-Lumsden                      0.951  0.34178    
-    ## neighbourhood_cleansedWychwood                              1.567  0.11708    
-    ## neighbourhood_cleansedYonge-Eglinton                        1.425  0.15421    
-    ## neighbourhood_cleansedYonge-St.Clair                        1.606  0.10837    
-    ## neighbourhood_cleansedYork University Heights               0.956  0.33886    
-    ## neighbourhood_cleansedYorkdale-Glen Park                    1.325  0.18517    
-    ## review_scores_cleanliness                                   1.562  0.11831    
-    ## review_scores_rating                                       -1.115  0.26471    
-    ## reviews_per_month                                          -1.421  0.15540    
-    ## host_response_rate10%                                       1.674  0.09410 .  
-    ## host_response_rate100%                                     -0.896  0.37029    
-    ## host_response_rate13%                                       0.244  0.80723    
-    ## host_response_rate14%                                      -0.272  0.78581    
-    ## host_response_rate17%                                       0.113  0.91032    
-    ## host_response_rate20%                                      -0.633  0.52693    
-    ## host_response_rate22%                                      -0.174  0.86184    
-    ## host_response_rate25%                                      -0.522  0.60157    
-    ## host_response_rate29%                                      -0.165  0.86896    
-    ## host_response_rate30%                                      -0.480  0.63123    
-    ## host_response_rate33%                                      -0.156  0.87634    
-    ## host_response_rate36%                                       0.063  0.94999    
-    ## host_response_rate37%                                      -0.560  0.57524    
-    ## host_response_rate39%                                      -0.742  0.45835    
-    ## host_response_rate40%                                      -0.225  0.82171    
-    ## host_response_rate43%                                      -0.174  0.86178    
-    ## host_response_rate44%                                      -0.299  0.76489    
-    ## host_response_rate47%                                      -0.768  0.44236    
-    ## host_response_rate48%                                      -0.671  0.50255    
-    ## host_response_rate50%                                      -0.581  0.56095    
-    ## host_response_rate52%                                      -0.202  0.83997    
-    ## host_response_rate53%                                      -1.783  0.07469 .  
-    ## host_response_rate56%                                       0.592  0.55364    
-    ## host_response_rate57%                                      -0.181  0.85675    
-    ## host_response_rate59%                                      -0.360  0.71852    
-    ## host_response_rate60%                                      -1.694  0.09023 .  
-    ## host_response_rate62%                                      -1.273  0.20312    
-    ## host_response_rate66%                                      -1.122  0.26185    
-    ## host_response_rate67%                                      -0.375  0.70793    
-    ## host_response_rate68%                                       0.282  0.77789    
-    ## host_response_rate69%                                       0.106  0.91524    
-    ## host_response_rate70%                                       1.434  0.15171    
-    ## host_response_rate71%                                      -0.481  0.63027    
-    ## host_response_rate72%                                      -0.230  0.81782    
-    ## host_response_rate73%                                      -0.759  0.44806    
-    ## host_response_rate75%                                      -0.173  0.86302    
-    ## host_response_rate76%                                      -0.336  0.73704    
-    ## host_response_rate77%                                       0.042  0.96689    
-    ## host_response_rate79%                                      -0.240  0.81019    
-    ## host_response_rate80%                                      -1.149  0.25046    
-    ## host_response_rate82%                                       0.021  0.98344    
-    ## host_response_rate83%                                      -0.165  0.86875    
-    ## host_response_rate85%                                      -0.321  0.74793    
-    ## host_response_rate86%                                      -0.538  0.59078    
-    ## host_response_rate87%                                      -0.245  0.80650    
-    ## host_response_rate88%                                      -1.866  0.06213 .  
-    ## host_response_rate89%                                       0.143  0.88666    
-    ## host_response_rate90%                                      -0.749  0.45379    
-    ## host_response_rate91%                                      -0.537  0.59117    
-    ## host_response_rate92%                                      -0.323  0.74658    
-    ## host_response_rate93%                                      -0.161  0.87249    
-    ## host_response_rate94%                                      -0.610  0.54167    
-    ## host_response_rate95%                                      -1.120  0.26268    
-    ## host_response_rate96%                                      -0.470  0.63832    
-    ## host_response_rate97%                                      -0.514  0.60697    
-    ## host_response_rate98%                                      -0.395  0.69315    
-    ## host_response_rate99%                                       0.510  0.60978    
-    ## host_response_rateN/A                                       0.024  0.98069    
-    ## minimum_nights                                              6.503 8.32e-11 ***
-    ## maximum_nights                                              0.115  0.90833    
-    ## host_is_superhostTRUE                                      -0.647  0.51765    
+    ## (Intercept)                                                -2.221 0.026363 *  
+    ## bedrooms                                                   22.450  < 2e-16 ***
+    ## bathrooms_numeric                                           8.440  < 2e-16 ***
+    ## neighbourhood_cleansedAgincourt South-Malvern West          0.506 0.612810    
+    ## neighbourhood_cleansedAlderwood                             0.867 0.386170    
+    ## neighbourhood_cleansedAnnex                                 1.940 0.052435 .  
+    ## neighbourhood_cleansedBanbury-Don Mills                     0.865 0.387266    
+    ## neighbourhood_cleansedBathurst Manor                        2.925 0.003456 ** 
+    ## neighbourhood_cleansedBay Street Corridor                   1.989 0.046718 *  
+    ## neighbourhood_cleansedBayview Village                       1.145 0.252443    
+    ## neighbourhood_cleansedBayview Woods-Steeles                 0.850 0.395607    
+    ## neighbourhood_cleansedBedford Park-Nortown                  0.086 0.931821    
+    ## neighbourhood_cleansedBeechborough-Greenbrook               0.523 0.601269    
+    ## neighbourhood_cleansedBendale                               0.965 0.334789    
+    ## neighbourhood_cleansedBirchcliffe-Cliffside                 0.378 0.705329    
+    ## neighbourhood_cleansedBlack Creek                          -1.504 0.132645    
+    ## neighbourhood_cleansedBlake-Jones                           1.107 0.268506    
+    ## neighbourhood_cleansedBriar Hill-Belgravia                  0.488 0.625383    
+    ## neighbourhood_cleansedBridle Path-Sunnybrook-York Mills     0.842 0.400021    
+    ## neighbourhood_cleansedBroadview North                       2.529 0.011464 *  
+    ## neighbourhood_cleansedBrookhaven-Amesbury                   0.352 0.725168    
+    ## neighbourhood_cleansedCabbagetown-South St.James Town       2.086 0.036999 *  
+    ## neighbourhood_cleansedCaledonia-Fairbank                    0.705 0.480782    
+    ## neighbourhood_cleansedCasa Loma                             1.886 0.059401 .  
+    ## neighbourhood_cleansedCentennial Scarborough                0.976 0.329017    
+    ## neighbourhood_cleansedChurch-Yonge Corridor                 2.039 0.041476 *  
+    ## neighbourhood_cleansedClairlea-Birchmount                   1.416 0.156877    
+    ## neighbourhood_cleansedClanton Park                          0.468 0.639782    
+    ## neighbourhood_cleansedCliffcrest                            0.863 0.387975    
+    ## neighbourhood_cleansedCorso Italia-Davenport                0.782 0.433985    
+    ## neighbourhood_cleansedDanforth                              1.185 0.235946    
+    ## neighbourhood_cleansedDanforth East York                    1.130 0.258477    
+    ## neighbourhood_cleansedDon Valley Village                    0.824 0.409732    
+    ## neighbourhood_cleansedDorset Park                           0.665 0.506359    
+    ## neighbourhood_cleansedDovercourt-Wallace Emerson-Junction   1.039 0.298754    
+    ## neighbourhood_cleansedDownsview-Roding-CFB                  0.441 0.659124    
+    ## neighbourhood_cleansedDufferin Grove                        1.239 0.215250    
+    ## neighbourhood_cleansedEast End-Danforth                     1.004 0.315204    
+    ## neighbourhood_cleansedEdenbridge-Humber Valley              0.782 0.434524    
+    ## neighbourhood_cleansedEglinton East                         0.477 0.633139    
+    ## neighbourhood_cleansedElms-Old Rexdale                      1.052 0.292876    
+    ## neighbourhood_cleansedEnglemount-Lawrence                   0.732 0.463984    
+    ## neighbourhood_cleansedEringate-Centennial-West Deane        0.915 0.360139    
+    ## neighbourhood_cleansedEtobicoke West Mall                   1.175 0.240172    
+    ## neighbourhood_cleansedFlemingdon Park                       0.520 0.603194    
+    ## neighbourhood_cleansedForest Hill North                     0.987 0.323703    
+    ## neighbourhood_cleansedForest Hill South                     0.536 0.591972    
+    ## neighbourhood_cleansedGlenfield-Jane Heights                0.555 0.579071    
+    ## neighbourhood_cleansedGreenwood-Coxwell                     1.315 0.188519    
+    ## neighbourhood_cleansedGuildwood                             0.323 0.746391    
+    ## neighbourhood_cleansedHenry Farm                            1.123 0.261490    
+    ## neighbourhood_cleansedHigh Park North                       0.857 0.391575    
+    ## neighbourhood_cleansedHigh Park-Swansea                     1.574 0.115500    
+    ## neighbourhood_cleansedHighland Creek                        0.308 0.758256    
+    ## neighbourhood_cleansedHillcrest Village                     0.146 0.883789    
+    ## neighbourhood_cleansedHumber Heights-Westmount              0.992 0.321191    
+    ## neighbourhood_cleansedHumber Summit                         0.527 0.598110    
+    ## neighbourhood_cleansedHumbermede                            1.010 0.312315    
+    ## neighbourhood_cleansedHumewood-Cedarvale                    0.962 0.336327    
+    ## neighbourhood_cleansedIonview                               0.272 0.785462    
+    ## neighbourhood_cleansedIslington-City Centre West            0.836 0.402992    
+    ## neighbourhood_cleansedJunction Area                         1.072 0.283638    
+    ## neighbourhood_cleansedKeelesdale-Eglinton West              0.622 0.534108    
+    ## neighbourhood_cleansedKennedy Park                          0.422 0.673366    
+    ## neighbourhood_cleansedKensington-Chinatown                  1.505 0.132435    
+    ## neighbourhood_cleansedKingsview Village-The Westway         0.918 0.358515    
+    ## neighbourhood_cleansedKingsway South                        0.670 0.502684    
+    ## neighbourhood_cleansedL'Amoreaux                           -0.093 0.925879    
+    ## neighbourhood_cleansedLambton Baby Point                    1.064 0.287404    
+    ## neighbourhood_cleansedLansing-Westgate                      0.832 0.405495    
+    ## neighbourhood_cleansedLawrence Park North                   1.008 0.313526    
+    ## neighbourhood_cleansedLawrence Park South                   1.104 0.269541    
+    ## neighbourhood_cleansedLeaside-Bennington                    1.822 0.068465 .  
+    ## neighbourhood_cleansedLittle Portugal                       1.973 0.048526 *  
+    ## neighbourhood_cleansedLong Branch                           0.725 0.468454    
+    ## neighbourhood_cleansedMalvern                               0.336 0.736665    
+    ## neighbourhood_cleansedMaple Leaf                            0.961 0.336764    
+    ## neighbourhood_cleansedMarkland Wood                         1.113 0.265552    
+    ## neighbourhood_cleansedMilliken                              0.616 0.537634    
+    ## neighbourhood_cleansedMimico (includes Humber Bay Shores)   1.983 0.047469 *  
+    ## neighbourhood_cleansedMorningside                           0.396 0.692138    
+    ## neighbourhood_cleansedMoss Park                             2.071 0.038413 *  
+    ## neighbourhood_cleansedMount Dennis                         -0.034 0.972742    
+    ## neighbourhood_cleansedMount Olive-Silverstone-Jamestown     0.595 0.551984    
+    ## neighbourhood_cleansedMount Pleasant East                   1.504 0.132697    
+    ## neighbourhood_cleansedMount Pleasant West                   1.441 0.149749    
+    ## neighbourhood_cleansedNew Toronto                           2.558 0.010554 *  
+    ## neighbourhood_cleansedNewtonbrook East                      0.446 0.655577    
+    ## neighbourhood_cleansedNewtonbrook West                      0.763 0.445499    
+    ## neighbourhood_cleansedNiagara                               2.430 0.015135 *  
+    ## neighbourhood_cleansedNorth Riverdale                       1.318 0.187558    
+    ## neighbourhood_cleansedNorth St.James Town                   1.360 0.173776    
+    ## neighbourhood_cleansedO'Connor-Parkview                     0.830 0.406780    
+    ## neighbourhood_cleansedOakridge                              1.740 0.081915 .  
+    ## neighbourhood_cleansedOakwood Village                       0.767 0.443092    
+    ## neighbourhood_cleansedOld East York                         0.925 0.355088    
+    ## neighbourhood_cleansedPalmerston-Little Italy               1.824 0.068165 .  
+    ## neighbourhood_cleansedParkwoods-Donalda                    -0.026 0.979557    
+    ## neighbourhood_cleansedPelmo Park-Humberlea                  0.682 0.495174    
+    ## neighbourhood_cleansedPlayter Estates-Danforth              1.121 0.262169    
+    ## neighbourhood_cleansedPleasant View                         0.471 0.637804    
+    ## neighbourhood_cleansedPrincess-Rosethorn                    0.892 0.372284    
+    ## neighbourhood_cleansedRegent Park                           2.001 0.045444 *  
+    ## neighbourhood_cleansedRexdale-Kipling                       0.465 0.641849    
+    ## neighbourhood_cleansedRockcliffe-Smythe                     0.775 0.438396    
+    ## neighbourhood_cleansedRoncesvalles                          1.671 0.094764 .  
+    ## neighbourhood_cleansedRosedale-Moore Park                   1.627 0.103767    
+    ## neighbourhood_cleansedRouge                                 0.829 0.407421    
+    ## neighbourhood_cleansedRunnymede-Bloor West Village          0.714 0.475101    
+    ## neighbourhood_cleansedRustic                                0.006 0.994997    
+    ## neighbourhood_cleansedScarborough Village                   0.521 0.602494    
+    ## neighbourhood_cleansedSouth Parkdale                        0.974 0.330151    
+    ## neighbourhood_cleansedSouth Riverdale                       1.832 0.066988 .  
+    ## neighbourhood_cleansedSt.Andrew-Windfields                  2.113 0.034660 *  
+    ## neighbourhood_cleansedSteeles                               0.573 0.566886    
+    ## neighbourhood_cleansedStonegate-Queensway                   0.988 0.323152    
+    ## neighbourhood_cleansedTam O'Shanter-Sullivan                0.277 0.781714    
+    ## neighbourhood_cleansedTaylor-Massey                         0.633 0.526928    
+    ## neighbourhood_cleansedThe Beaches                           1.525 0.127412    
+    ## neighbourhood_cleansedThistletown-Beaumond Heights          0.779 0.436166    
+    ## neighbourhood_cleansedThorncliffe Park                      0.800 0.424009    
+    ## neighbourhood_cleansedTrinity-Bellwoods                     1.810 0.070411 .  
+    ## neighbourhood_cleansedUniversity                            1.036 0.300314    
+    ## neighbourhood_cleansedVictoria Village                      0.296 0.767168    
+    ## neighbourhood_cleansedWaterfront Communities-The Island     2.392 0.016795 *  
+    ## neighbourhood_cleansedWest Hill                             0.703 0.482231    
+    ## neighbourhood_cleansedWest Humber-Clairville                0.887 0.375303    
+    ## neighbourhood_cleansedWestminster-Branson                   0.570 0.568743    
+    ## neighbourhood_cleansedWeston                                0.756 0.449387    
+    ## neighbourhood_cleansedWeston-Pellam Park                    1.351 0.176865    
+    ## neighbourhood_cleansedWexford/Maryvale                      0.609 0.542452    
+    ## neighbourhood_cleansedWillowdale East                       1.211 0.225963    
+    ## neighbourhood_cleansedWillowdale West                       0.851 0.394985    
+    ## neighbourhood_cleansedWillowridge-Martingrove-Richview      0.464 0.642816    
+    ## neighbourhood_cleansedWoburn                                0.719 0.472396    
+    ## neighbourhood_cleansedWoodbine Corridor                     1.760 0.078530 .  
+    ## neighbourhood_cleansedWoodbine-Lumsden                      0.881 0.378212    
+    ## neighbourhood_cleansedWychwood                              1.344 0.179138    
+    ## neighbourhood_cleansedYonge-Eglinton                        1.212 0.225514    
+    ## neighbourhood_cleansedYonge-St.Clair                        1.445 0.148562    
+    ## neighbourhood_cleansedYork University Heights               0.633 0.526992    
+    ## neighbourhood_cleansedYorkdale-Glen Park                    1.065 0.287009    
+    ## review_scores_cleanliness                                   1.883 0.059756 .  
+    ## review_scores_rating                                       -0.026 0.979614    
+    ## reviews_per_month                                          -3.329 0.000877 ***
+    ## host_response_rate                                         -2.307 0.021080 *  
+    ## minimum_nights                                              0.633 0.526556    
+    ## maximum_nights                                              0.087 0.930289    
+    ## host_is_superhostTRUE                                       0.037 0.970121    
     ## ---
     ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
     ## 
-    ## Residual standard error: 242.4 on 8096 degrees of freedom
-    ## Multiple R-squared:  0.09628,    Adjusted R-squared:  0.0734 
-    ## F-statistic: 4.208 on 205 and 8096 DF,  p-value: < 2.2e-16
+    ## Residual standard error: 126.6 on 4938 degrees of freedom
+    ## Multiple R-squared:  0.2705, Adjusted R-squared:  0.2487 
+    ## F-statistic: 12.37 on 148 and 4938 DF,  p-value: < 2.2e-16
 
 ``` r
 stats::step(initial_full_model, direction = "backward")
 ```
 
-    ## Start:  AIC=91368.49
+    ## Start:  AIC=49402.17
     ## price ~ bedrooms + bathrooms_numeric + neighbourhood_cleansed + 
     ##     review_scores_cleanliness + review_scores_rating + reviews_per_month + 
     ##     host_response_rate + minimum_nights + maximum_nights + host_is_superhost
     ## 
-    ##                              Df Sum of Sq       RSS   AIC
-    ## - host_response_rate         58   1800719 477466112 91284
-    ## - neighbourhood_cleansed    139  12120535 487785928 91299
-    ## - maximum_nights              1       779 475666172 91367
-    ## - host_is_superhost           1     24595 475689988 91367
-    ## - review_scores_rating        1     73098 475738491 91368
-    ## <none>                                    475665393 91368
-    ## - reviews_per_month           1    118608 475784001 91369
-    ## - review_scores_cleanliness   1    143364 475808757 91369
-    ## - bathrooms_numeric           1   2116587 477781980 91403
-    ## - minimum_nights              1   2484838 478150231 91410
-    ## - bedrooms                    1  11273407 486938800 91561
+    ##                              Df Sum of Sq      RSS   AIC
+    ## - review_scores_rating        1        10 79186598 49400
+    ## - host_is_superhost           1        23 79186611 49400
+    ## - maximum_nights              1       123 79186711 49400
+    ## - minimum_nights              1      6432 79193020 49401
+    ## <none>                                    79186588 49402
+    ## - review_scores_cleanliness   1     56861 79243449 49404
+    ## - host_response_rate          1     85370 79271958 49406
+    ## - reviews_per_month           1    177755 79364343 49412
+    ## - bathrooms_numeric           1   1142298 80328886 49473
+    ## - neighbourhood_cleansed    139   6529032 85715620 49527
+    ## - bedrooms                    1   8082434 87269022 49895
     ## 
-    ## Step:  AIC=91283.86
+    ## Step:  AIC=49400.17
     ## price ~ bedrooms + bathrooms_numeric + neighbourhood_cleansed + 
-    ##     review_scores_cleanliness + review_scores_rating + reviews_per_month + 
+    ##     review_scores_cleanliness + reviews_per_month + host_response_rate + 
     ##     minimum_nights + maximum_nights + host_is_superhost
     ## 
-    ##                              Df Sum of Sq       RSS   AIC
-    ## - neighbourhood_cleansed    139  12647438 490113550 91223
-    ## - maximum_nights              1       492 477466604 91282
-    ## - review_scores_rating        1     64615 477530727 91283
-    ## - host_is_superhost           1     65105 477531216 91283
-    ## <none>                                    477466112 91284
-    ## - review_scores_cleanliness   1    158715 477624827 91285
-    ## - reviews_per_month           1    220303 477686415 91286
-    ## - bathrooms_numeric           1   2079633 479545745 91318
-    ## - minimum_nights              1   2797489 480263601 91330
-    ## - bedrooms                    1  11533344 488999455 91480
+    ##                              Df Sum of Sq      RSS   AIC
+    ## - host_is_superhost           1        21 79186619 49398
+    ## - maximum_nights              1       123 79186722 49398
+    ## - minimum_nights              1      6423 79193022 49399
+    ## <none>                                    79186598 49400
+    ## - host_response_rate          1     85439 79272038 49404
+    ## - review_scores_cleanliness   1    139273 79325871 49407
+    ## - reviews_per_month           1    177814 79364412 49410
+    ## - bathrooms_numeric           1   1142289 80328888 49471
+    ## - neighbourhood_cleansed    139   6529863 85716461 49525
+    ## - bedrooms                    1   8085064 87271662 49893
     ## 
-    ## Step:  AIC=91222.91
-    ## price ~ bedrooms + bathrooms_numeric + review_scores_cleanliness + 
-    ##     review_scores_rating + reviews_per_month + minimum_nights + 
-    ##     maximum_nights + host_is_superhost
+    ## Step:  AIC=49398.17
+    ## price ~ bedrooms + bathrooms_numeric + neighbourhood_cleansed + 
+    ##     review_scores_cleanliness + reviews_per_month + host_response_rate + 
+    ##     minimum_nights + maximum_nights
     ## 
-    ##                             Df Sum of Sq       RSS   AIC
-    ## - maximum_nights             1      1467 490115017 91221
-    ## - reviews_per_month          1      2144 490115695 91221
-    ## - review_scores_rating       1      8148 490121698 91221
-    ## - review_scores_cleanliness  1     85141 490198691 91222
-    ## <none>                                   490113550 91223
-    ## - host_is_superhost          1    129330 490242880 91223
-    ## - bathrooms_numeric          1   2363716 492477266 91261
-    ## - minimum_nights             1   3413183 493526733 91279
-    ## - bedrooms                   1  12039558 502153108 91422
+    ##                              Df Sum of Sq      RSS   AIC
+    ## - maximum_nights              1       122 79186741 49396
+    ## - minimum_nights              1      6426 79193045 49397
+    ## <none>                                    79186619 49398
+    ## - host_response_rate          1     88442 79275061 49402
+    ## - review_scores_cleanliness   1    147765 79334384 49406
+    ## - reviews_per_month           1    181451 79368070 49408
+    ## - bathrooms_numeric           1   1142276 80328895 49469
+    ## - neighbourhood_cleansed    139   6530548 85717167 49523
+    ## - bedrooms                    1   8085115 87271734 49891
     ## 
-    ## Step:  AIC=91220.93
-    ## price ~ bedrooms + bathrooms_numeric + review_scores_cleanliness + 
-    ##     review_scores_rating + reviews_per_month + minimum_nights + 
-    ##     host_is_superhost
+    ## Step:  AIC=49396.18
+    ## price ~ bedrooms + bathrooms_numeric + neighbourhood_cleansed + 
+    ##     review_scores_cleanliness + reviews_per_month + host_response_rate + 
+    ##     minimum_nights
     ## 
-    ##                             Df Sum of Sq       RSS   AIC
-    ## - reviews_per_month          1      2152 490117169 91219
-    ## - review_scores_rating       1      8190 490123207 91219
-    ## - review_scores_cleanliness  1     85209 490200225 91220
-    ## <none>                                   490115017 91221
-    ## - host_is_superhost          1    129539 490244556 91221
-    ## - bathrooms_numeric          1   2363430 492478447 91259
-    ## - minimum_nights             1   3412218 493527235 91277
-    ## - bedrooms                   1  12038873 502153890 91420
+    ##                              Df Sum of Sq      RSS   AIC
+    ## - minimum_nights              1      6396 79193137 49395
+    ## <none>                                    79186741 49396
+    ## - host_response_rate          1     88419 79275160 49400
+    ## - review_scores_cleanliness   1    147719 79334460 49404
+    ## - reviews_per_month           1    181535 79368276 49406
+    ## - bathrooms_numeric           1   1142207 80328948 49467
+    ## - neighbourhood_cleansed    139   6532367 85719108 49521
+    ## - bedrooms                    1   8085005 87271746 49889
     ## 
-    ## Step:  AIC=91218.97
-    ## price ~ bedrooms + bathrooms_numeric + review_scores_cleanliness + 
-    ##     review_scores_rating + minimum_nights + host_is_superhost
+    ## Step:  AIC=49394.59
+    ## price ~ bedrooms + bathrooms_numeric + neighbourhood_cleansed + 
+    ##     review_scores_cleanliness + reviews_per_month + host_response_rate
     ## 
-    ##                             Df Sum of Sq       RSS   AIC
-    ## - review_scores_rating       1      8255 490125424 91217
-    ## - review_scores_cleanliness  1     86110 490203279 91218
-    ## <none>                                   490117169 91219
-    ## - host_is_superhost          1    129509 490246679 91219
-    ## - bathrooms_numeric          1   2363748 492480917 91257
-    ## - minimum_nights             1   3445878 493563048 91275
-    ## - bedrooms                   1  12055238 502172407 91419
-    ## 
-    ## Step:  AIC=91217.11
-    ## price ~ bedrooms + bathrooms_numeric + review_scores_cleanliness + 
-    ##     minimum_nights + host_is_superhost
-    ## 
-    ##                             Df Sum of Sq       RSS   AIC
-    ## <none>                                   490125424 91217
-    ## - review_scores_cleanliness  1    118904 490244329 91217
-    ## - host_is_superhost          1    135304 490260729 91217
-    ## - bathrooms_numeric          1   2361869 492487293 91255
-    ## - minimum_nights             1   3443083 493568507 91273
-    ## - bedrooms                   1  12060638 502186062 91417
+    ##                              Df Sum of Sq      RSS   AIC
+    ## <none>                                    79193137 49395
+    ## - host_response_rate          1     92157 79285295 49399
+    ## - review_scores_cleanliness   1    146838 79339975 49402
+    ## - reviews_per_month           1    200424 79393562 49405
+    ## - bathrooms_numeric           1   1138292 80331429 49465
+    ## - neighbourhood_cleansed    139   6623010 85816147 49525
+    ## - bedrooms                    1   8085793 87278931 49887
 
     ## 
     ## Call:
-    ## lm(formula = price ~ bedrooms + bathrooms_numeric + review_scores_cleanliness + 
-    ##     minimum_nights + host_is_superhost, data = feb_21_airbnb_train)
+    ## lm(formula = price ~ bedrooms + bathrooms_numeric + neighbourhood_cleansed + 
+    ##     review_scores_cleanliness + reviews_per_month + host_response_rate, 
+    ##     data = feb_21_airbnb_train)
     ## 
     ## Coefficients:
-    ##               (Intercept)                   bedrooms  
-    ##                  -50.9688                    59.6094  
-    ##         bathrooms_numeric  review_scores_cleanliness  
-    ##                   37.8223                     3.5896  
-    ##            minimum_nights      host_is_superhostTRUE  
-    ##                    0.6425                    -8.9067
+    ##                                               (Intercept)  
+    ##                                                 -121.7356  
+    ##                                                  bedrooms  
+    ##                                                   61.9303  
+    ##                                         bathrooms_numeric  
+    ##                                                   33.9926  
+    ##        neighbourhood_cleansedAgincourt South-Malvern West  
+    ##                                                   28.2150  
+    ##                           neighbourhood_cleansedAlderwood  
+    ##                                                   59.2782  
+    ##                               neighbourhood_cleansedAnnex  
+    ##                                                  102.9340  
+    ##                   neighbourhood_cleansedBanbury-Don Mills  
+    ##                                                   57.5445  
+    ##                      neighbourhood_cleansedBathurst Manor  
+    ##                                                  185.2096  
+    ##                 neighbourhood_cleansedBay Street Corridor  
+    ##                                                  105.5584  
+    ##                     neighbourhood_cleansedBayview Village  
+    ##                                                   66.1007  
+    ##               neighbourhood_cleansedBayview Woods-Steeles  
+    ##                                                   48.3429  
+    ##                neighbourhood_cleansedBedford Park-Nortown  
+    ##                                                    4.8631  
+    ##             neighbourhood_cleansedBeechborough-Greenbrook  
+    ##                                                   36.2907  
+    ##                             neighbourhood_cleansedBendale  
+    ##                                                   57.9337  
+    ##               neighbourhood_cleansedBirchcliffe-Cliffside  
+    ##                                                   21.8315  
+    ##                         neighbourhood_cleansedBlack Creek  
+    ##                                                 -106.1108  
+    ##                         neighbourhood_cleansedBlake-Jones  
+    ##                                                   65.6957  
+    ##                neighbourhood_cleansedBriar Hill-Belgravia  
+    ##                                                   30.6090  
+    ##   neighbourhood_cleansedBridle Path-Sunnybrook-York Mills  
+    ##                                                   56.2733  
+    ##                     neighbourhood_cleansedBroadview North  
+    ##                                                  168.9248  
+    ##                 neighbourhood_cleansedBrookhaven-Amesbury  
+    ##                                                   25.1542  
+    ##     neighbourhood_cleansedCabbagetown-South St.James Town  
+    ##                                                  114.3096  
+    ##                  neighbourhood_cleansedCaledonia-Fairbank  
+    ##                                                   42.5846  
+    ##                           neighbourhood_cleansedCasa Loma  
+    ##                                                  126.0772  
+    ##              neighbourhood_cleansedCentennial Scarborough  
+    ##                                                   79.5903  
+    ##               neighbourhood_cleansedChurch-Yonge Corridor  
+    ##                                                  108.6254  
+    ##                 neighbourhood_cleansedClairlea-Birchmount  
+    ##                                                   83.5965  
+    ##                        neighbourhood_cleansedClanton Park  
+    ##                                                   27.3989  
+    ##                          neighbourhood_cleansedCliffcrest  
+    ##                                                   53.4681  
+    ##              neighbourhood_cleansedCorso Italia-Davenport  
+    ##                                                   43.4659  
+    ##                            neighbourhood_cleansedDanforth  
+    ##                                                   70.3989  
+    ##                  neighbourhood_cleansedDanforth East York  
+    ##                                                   68.7052  
+    ##                  neighbourhood_cleansedDon Valley Village  
+    ##                                                   47.3967  
+    ##                         neighbourhood_cleansedDorset Park  
+    ##                                                   39.0113  
+    ## neighbourhood_cleansedDovercourt-Wallace Emerson-Junction  
+    ##                                                   55.6025  
+    ##                neighbourhood_cleansedDownsview-Roding-CFB  
+    ##                                                   25.9334  
+    ##                      neighbourhood_cleansedDufferin Grove  
+    ##                                                   68.4278  
+    ##                   neighbourhood_cleansedEast End-Danforth  
+    ##                                                   55.3660  
+    ##            neighbourhood_cleansedEdenbridge-Humber Valley  
+    ##                                                   63.9790  
+    ##                       neighbourhood_cleansedEglinton East  
+    ##                                                   32.1102  
+    ##                    neighbourhood_cleansedElms-Old Rexdale  
+    ##                                                   77.2217  
+    ##                 neighbourhood_cleansedEnglemount-Lawrence  
+    ##                                                   44.6150  
+    ##      neighbourhood_cleansedEringate-Centennial-West Deane  
+    ##                                                   54.2876  
+    ##                 neighbourhood_cleansedEtobicoke West Mall  
+    ##                                                   82.7682  
+    ##                     neighbourhood_cleansedFlemingdon Park  
+    ##                                                   47.0186  
+    ##                   neighbourhood_cleansedForest Hill North  
+    ##                                                   75.9347  
+    ##                   neighbourhood_cleansedForest Hill South  
+    ##                                                   48.3891  
+    ##              neighbourhood_cleansedGlenfield-Jane Heights  
+    ##                                                   37.8042  
+    ##                   neighbourhood_cleansedGreenwood-Coxwell  
+    ##                                                   73.1405  
+    ##                           neighbourhood_cleansedGuildwood  
+    ##                                                   24.3660  
+    ##                          neighbourhood_cleansedHenry Farm  
+    ##                                                   69.4996  
+    ##                     neighbourhood_cleansedHigh Park North  
+    ##                                                   48.1410  
+    ##                   neighbourhood_cleansedHigh Park-Swansea  
+    ##                                                   85.6317  
+    ##                      neighbourhood_cleansedHighland Creek  
+    ##                                                   18.9339  
+    ##                   neighbourhood_cleansedHillcrest Village  
+    ##                                                    9.0871  
+    ##            neighbourhood_cleansedHumber Heights-Westmount  
+    ##                                                   72.7037  
+    ##                       neighbourhood_cleansedHumber Summit  
+    ##                                                   53.7664  
+    ##                          neighbourhood_cleansedHumbermede  
+    ##                                                   71.5335  
+    ##                  neighbourhood_cleansedHumewood-Cedarvale  
+    ##                                                   57.5748  
+    ##                             neighbourhood_cleansedIonview  
+    ##                                                   16.1967  
+    ##          neighbourhood_cleansedIslington-City Centre West  
+    ##                                                   46.2777  
+    ##                       neighbourhood_cleansedJunction Area  
+    ##                                                   59.4756  
+    ##            neighbourhood_cleansedKeelesdale-Eglinton West  
+    ##                                                   40.3071  
+    ##                        neighbourhood_cleansedKennedy Park  
+    ##                                                   25.0838  
+    ##                neighbourhood_cleansedKensington-Chinatown  
+    ##                                                   80.0350  
+    ##       neighbourhood_cleansedKingsview Village-The Westway  
+    ##                                                   61.7142  
+    ##                      neighbourhood_cleansedKingsway South  
+    ##                                                   69.5278  
+    ##                          neighbourhood_cleansedL'Amoreaux  
+    ##                                                   -5.6422  
+    ##                  neighbourhood_cleansedLambton Baby Point  
+    ##                                                   81.9009  
+    ##                    neighbourhood_cleansedLansing-Westgate  
+    ##                                                   45.9043  
+    ##                 neighbourhood_cleansedLawrence Park North  
+    ##                                                   60.2457  
+    ##                 neighbourhood_cleansedLawrence Park South  
+    ##                                                   66.6789  
+    ##                  neighbourhood_cleansedLeaside-Bennington  
+    ##                                                  113.0356  
+    ##                     neighbourhood_cleansedLittle Portugal  
+    ##                                                  105.8833  
+    ##                         neighbourhood_cleansedLong Branch  
+    ##                                                   43.9776  
+    ##                             neighbourhood_cleansedMalvern  
+    ##                                                   18.7724  
+    ##                          neighbourhood_cleansedMaple Leaf  
+    ##                                                   69.7713  
+    ##                       neighbourhood_cleansedMarkland Wood  
+    ##                                                   81.1930  
+    ##                            neighbourhood_cleansedMilliken  
+    ##                                                   43.4465  
+    ## neighbourhood_cleansedMimico (includes Humber Bay Shores)  
+    ##                                                  108.8512  
+    ##                         neighbourhood_cleansedMorningside  
+    ##                                                   25.4431  
+    ##                           neighbourhood_cleansedMoss Park  
+    ##                                                  110.4414  
+    ##                        neighbourhood_cleansedMount Dennis  
+    ##                                                   -2.2560  
+    ##   neighbourhood_cleansedMount Olive-Silverstone-Jamestown  
+    ##                                                   41.9692  
+    ##                 neighbourhood_cleansedMount Pleasant East  
+    ##                                                   90.4592  
+    ##                 neighbourhood_cleansedMount Pleasant West  
+    ##                                                   78.2688  
+    ##                         neighbourhood_cleansedNew Toronto  
+    ##                                                  154.1641  
+    ##                    neighbourhood_cleansedNewtonbrook East  
+    ##                                                   24.3105  
+    ##                    neighbourhood_cleansedNewtonbrook West  
+    ##                                                   41.7989  
+    ##                             neighbourhood_cleansedNiagara  
+    ##                                                  128.7570  
+    ##                     neighbourhood_cleansedNorth Riverdale  
+    ##                                                   75.0668  
+    ##                 neighbourhood_cleansedNorth St.James Town  
+    ##                                                   77.5311  
+    ##                   neighbourhood_cleansedO'Connor-Parkview  
+    ##                                                   48.4269  
+    ##                            neighbourhood_cleansedOakridge  
+    ##                                                  107.8198  
+    ##                     neighbourhood_cleansedOakwood Village  
+    ##                                                   44.5250  
+    ##                       neighbourhood_cleansedOld East York  
+    ##                                                   55.2323  
+    ##             neighbourhood_cleansedPalmerston-Little Italy  
+    ##                                                   97.8335  
+    ##                   neighbourhood_cleansedParkwoods-Donalda  
+    ##                                                   -1.7111  
+    ##                neighbourhood_cleansedPelmo Park-Humberlea  
+    ##                                                   45.6759  
+    ##            neighbourhood_cleansedPlayter Estates-Danforth  
+    ##                                                   68.1103  
+    ##                       neighbourhood_cleansedPleasant View  
+    ##                                                   26.9079  
+    ##                  neighbourhood_cleansedPrincess-Rosethorn  
+    ##                                                   56.6602  
+    ##                         neighbourhood_cleansedRegent Park  
+    ##                                                  116.7789  
+    ##                     neighbourhood_cleansedRexdale-Kipling  
+    ##                                                   29.9660  
+    ##                   neighbourhood_cleansedRockcliffe-Smythe  
+    ##                                                   57.0034  
+    ##                        neighbourhood_cleansedRoncesvalles  
+    ##                                                   91.5549  
+    ##                 neighbourhood_cleansedRosedale-Moore Park  
+    ##                                                   95.4218  
+    ##                               neighbourhood_cleansedRouge  
+    ##                                                   51.9739  
+    ##        neighbourhood_cleansedRunnymede-Bloor West Village  
+    ##                                                   47.5092  
+    ##                              neighbourhood_cleansedRustic  
+    ##                                                    1.2657  
+    ##                 neighbourhood_cleansedScarborough Village  
+    ##                                                   46.3965  
+    ##                      neighbourhood_cleansedSouth Parkdale  
+    ##                                                   52.8077  
+    ##                     neighbourhood_cleansedSouth Riverdale  
+    ##                                                   98.0296  
+    ##                neighbourhood_cleansedSt.Andrew-Windfields  
+    ##                                                  126.3147  
+    ##                             neighbourhood_cleansedSteeles  
+    ##                                                   34.1486  
+    ##                 neighbourhood_cleansedStonegate-Queensway  
+    ##                                                   54.7911  
+    ##              neighbourhood_cleansedTam O'Shanter-Sullivan  
+    ##                                                   16.0197  
+    ##                       neighbourhood_cleansedTaylor-Massey  
+    ##                                                   42.7337  
+    ##                         neighbourhood_cleansedThe Beaches  
+    ##                                                   83.8189  
+    ##        neighbourhood_cleansedThistletown-Beaumond Heights  
+    ##                                                   70.0515  
+    ##                    neighbourhood_cleansedThorncliffe Park  
+    ##                                                   54.6306  
+    ##                   neighbourhood_cleansedTrinity-Bellwoods  
+    ##                                                   95.9096  
+    ##                          neighbourhood_cleansedUniversity  
+    ##                                                   57.6974  
+    ##                    neighbourhood_cleansedVictoria Village  
+    ##                                                   18.7403  
+    ##   neighbourhood_cleansedWaterfront Communities-The Island  
+    ##                                                  124.5834  
+    ##                           neighbourhood_cleansedWest Hill  
+    ##                                                   40.9581  
+    ##              neighbourhood_cleansedWest Humber-Clairville  
+    ##                                                   50.9106  
+    ##                 neighbourhood_cleansedWestminster-Branson  
+    ##                                                   33.8150  
+    ##                              neighbourhood_cleansedWeston  
+    ##                                                   45.7239  
+    ##                  neighbourhood_cleansedWeston-Pellam Park  
+    ##                                                   77.8994  
+    ##                    neighbourhood_cleansedWexford/Maryvale  
+    ##                                                   34.0869  
+    ##                     neighbourhood_cleansedWillowdale East  
+    ##                                                   64.1892  
+    ##                     neighbourhood_cleansedWillowdale West  
+    ##                                                   47.7324  
+    ##    neighbourhood_cleansedWillowridge-Martingrove-Richview  
+    ##                                                   27.5708  
+    ##                              neighbourhood_cleansedWoburn  
+    ##                                                   41.8831  
+    ##                   neighbourhood_cleansedWoodbine Corridor  
+    ##                                                  103.7267  
+    ##                    neighbourhood_cleansedWoodbine-Lumsden  
+    ##                                                   55.7153  
+    ##                            neighbourhood_cleansedWychwood  
+    ##                                                   76.1031  
+    ##                      neighbourhood_cleansedYonge-Eglinton  
+    ##                                                   70.3476  
+    ##                      neighbourhood_cleansedYonge-St.Clair  
+    ##                                                   89.7613  
+    ##             neighbourhood_cleansedYork University Heights  
+    ##                                                   34.1811  
+    ##                  neighbourhood_cleansedYorkdale-Glen Park  
+    ##                                                   58.0803  
+    ##                                 review_scores_cleanliness  
+    ##                                                    5.3503  
+    ##                                         reviews_per_month  
+    ##                                                   -4.1829  
+    ##                                        host_response_rate  
+    ##                                                   -0.1815
 
 We can see from the AIC backwards selection that the resulting linear
 model has variables:
@@ -1622,92 +1754,350 @@ model has variables:
 
 > minimum\_nights
 
-We can now fit a model with the selected variables
+> neighbourhood\_cleansed
 
-``` r
-#variable selected model
-variable_selected_mod <- lm(formula = price ~ bedrooms + bathrooms_numeric +
-    minimum_nights, data = feb_21_airbnb_train)
+> review\_scores\_cleanliness
 
+> reviews\_per\_month
 
-#summary of variable selected model
-summary(variable_selected_mod)
-```
-
-    ## 
-    ## Call:
-    ## lm(formula = price ~ bedrooms + bathrooms_numeric + minimum_nights, 
-    ##     data = feb_21_airbnb_train)
-    ## 
-    ## Residuals:
-    ##     Min      1Q  Median      3Q     Max 
-    ##  -733.2   -52.3   -20.3    19.7 12904.7 
-    ## 
-    ## Coefficients:
-    ##                    Estimate Std. Error t value Pr(>|t|)    
-    ## (Intercept)       -20.35274    7.14199  -2.850  0.00439 ** 
-    ## bedrooms           59.52675    4.16765  14.283  < 2e-16 ***
-    ## bathrooms_numeric  37.95179    5.97636   6.350 2.26e-10 ***
-    ## minimum_nights      0.65043    0.08391   7.751 1.02e-14 ***
-    ## ---
-    ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
-    ## 
-    ## Residual standard error: 243.1 on 8298 degrees of freedom
-    ## Multiple R-squared:  0.06842,    Adjusted R-squared:  0.06808 
-    ## F-statistic: 203.1 on 3 and 8298 DF,  p-value: < 2.2e-16
-
-We can see that bedrooms, bathrooms\_numeric,
-review\_scores\_cleanliness, and minimum\_nights are all significant at
-0.05.
+> host\_response\_rate
 
 ### Prediction of Price:
 
-We can now see how the model preforms in prediction.
+We can now see how the resulting model preforms in prediction.
 
 ``` r
 #initial price model
-price_inital_model <- lm(formula = price ~ bedrooms + bathrooms_numeric +
-    minimum_nights, data = feb_21_airbnb_train)
+price_inital_model <- lm(formula = price ~ bedrooms + bathrooms_numeric + neighbourhood_cleansed + 
+    review_scores_cleanliness + reviews_per_month + host_response_rate, 
+    data = feb_21_airbnb_train)
+  
 
-
+#summary of the initial price model
 summary(price_inital_model)
 ```
 
     ## 
     ## Call:
-    ## lm(formula = price ~ bedrooms + bathrooms_numeric + minimum_nights, 
+    ## lm(formula = price ~ bedrooms + bathrooms_numeric + neighbourhood_cleansed + 
+    ##     review_scores_cleanliness + reviews_per_month + host_response_rate, 
     ##     data = feb_21_airbnb_train)
     ## 
     ## Residuals:
-    ##     Min      1Q  Median      3Q     Max 
-    ##  -733.2   -52.3   -20.3    19.7 12904.7 
+    ##    Min     1Q Median     3Q    Max 
+    ## -539.0  -41.9  -11.6   20.6 3373.8 
     ## 
     ## Coefficients:
-    ##                    Estimate Std. Error t value Pr(>|t|)    
-    ## (Intercept)       -20.35274    7.14199  -2.850  0.00439 ** 
-    ## bedrooms           59.52675    4.16765  14.283  < 2e-16 ***
-    ## bathrooms_numeric  37.95179    5.97636   6.350 2.26e-10 ***
-    ## minimum_nights      0.65043    0.08391   7.751 1.02e-14 ***
+    ##                                                             Estimate Std. Error
+    ## (Intercept)                                               -121.73555   54.33105
+    ## bedrooms                                                    61.93025    2.75698
+    ## bathrooms_numeric                                           33.99262    4.03320
+    ## neighbourhood_cleansedAgincourt South-Malvern West          28.21504   55.88989
+    ## neighbourhood_cleansedAlderwood                             59.27816   68.48316
+    ## neighbourhood_cleansedAnnex                                102.93397   52.81809
+    ## neighbourhood_cleansedBanbury-Don Mills                     57.54450   64.28410
+    ## neighbourhood_cleansedBathurst Manor                       185.20958   63.35810
+    ## neighbourhood_cleansedBay Street Corridor                  105.55837   52.84278
+    ## neighbourhood_cleansedBayview Village                       66.10069   57.35465
+    ## neighbourhood_cleansedBayview Woods-Steeles                 48.34290   56.56695
+    ## neighbourhood_cleansedBedford Park-Nortown                   4.86307   57.41636
+    ## neighbourhood_cleansedBeechborough-Greenbrook               36.29071   70.53859
+    ## neighbourhood_cleansedBendale                               57.93370   59.77398
+    ## neighbourhood_cleansedBirchcliffe-Cliffside                 21.83151   56.85558
+    ## neighbourhood_cleansedBlack Creek                         -106.11085   70.59377
+    ## neighbourhood_cleansedBlake-Jones                           65.69570   59.38997
+    ## neighbourhood_cleansedBriar Hill-Belgravia                  30.60899   62.52848
+    ## neighbourhood_cleansedBridle Path-Sunnybrook-York Mills     56.27332   66.79433
+    ## neighbourhood_cleansedBroadview North                      168.92484   66.80095
+    ## neighbourhood_cleansedBrookhaven-Amesbury                   25.15417   70.48586
+    ## neighbourhood_cleansedCabbagetown-South St.James Town      114.30956   54.72721
+    ## neighbourhood_cleansedCaledonia-Fairbank                    42.58461   60.19972
+    ## neighbourhood_cleansedCasa Loma                            126.07717   66.78579
+    ## neighbourhood_cleansedCentennial Scarborough                79.59029   81.77672
+    ## neighbourhood_cleansedChurch-Yonge Corridor                108.62539   52.96568
+    ## neighbourhood_cleansedClairlea-Birchmount                   83.59650   59.02394
+    ## neighbourhood_cleansedClanton Park                          27.39891   58.35248
+    ## neighbourhood_cleansedCliffcrest                            53.46806   61.83344
+    ## neighbourhood_cleansedCorso Italia-Davenport                43.46585   55.65210
+    ## neighbourhood_cleansedDanforth                              70.39895   59.36977
+    ## neighbourhood_cleansedDanforth East York                    68.70522   60.68530
+    ## neighbourhood_cleansedDon Valley Village                    47.39669   57.41356
+    ## neighbourhood_cleansedDorset Park                           39.01126   58.99556
+    ## neighbourhood_cleansedDovercourt-Wallace Emerson-Junction   55.60253   53.26090
+    ## neighbourhood_cleansedDownsview-Roding-CFB                  25.93339   58.67069
+    ## neighbourhood_cleansedDufferin Grove                        68.42775   54.96315
+    ## neighbourhood_cleansedEast End-Danforth                     55.36604   55.03661
+    ## neighbourhood_cleansedEdenbridge-Humber Valley              63.97905   81.73086
+    ## neighbourhood_cleansedEglinton East                         32.11023   66.76894
+    ## neighbourhood_cleansedElms-Old Rexdale                      77.22166   73.13486
+    ## neighbourhood_cleansedEnglemount-Lawrence                   44.61502   60.65020
+    ## neighbourhood_cleansedEringate-Centennial-West Deane        54.28762   59.35495
+    ## neighbourhood_cleansedEtobicoke West Mall                   82.76816   70.46154
+    ## neighbourhood_cleansedFlemingdon Park                       47.01862   89.57147
+    ## neighbourhood_cleansedForest Hill North                     75.93472   76.73066
+    ## neighbourhood_cleansedForest Hill South                     48.38913   89.56093
+    ## neighbourhood_cleansedGlenfield-Jane Heights                37.80424   68.44033
+    ## neighbourhood_cleansedGreenwood-Coxwell                     73.14046   55.59482
+    ## neighbourhood_cleansedGuildwood                             24.36596   76.71794
+    ## neighbourhood_cleansedHenry Farm                            69.49965   61.80929
+    ## neighbourhood_cleansedHigh Park North                       48.14101   56.03278
+    ## neighbourhood_cleansedHigh Park-Swansea                     85.63168   54.36163
+    ## neighbourhood_cleansedHighland Creek                        18.93394   61.85518
+    ## neighbourhood_cleansedHillcrest Village                      9.08714   61.18600
+    ## neighbourhood_cleansedHumber Heights-Westmount              72.70366   73.22619
+    ## neighbourhood_cleansedHumber Summit                         53.76641  103.39917
+    ## neighbourhood_cleansedHumbermede                            71.53351   70.49171
+    ## neighbourhood_cleansedHumewood-Cedarvale                    57.57482   59.30140
+    ## neighbourhood_cleansedIonview                               16.19674   59.01228
+    ## neighbourhood_cleansedIslington-City Centre West            46.27765   55.08429
+    ## neighbourhood_cleansedJunction Area                         59.47560   55.37449
+    ## neighbourhood_cleansedKeelesdale-Eglinton West              40.30712   64.28998
+    ## neighbourhood_cleansedKennedy Park                          25.08384   58.94586
+    ## neighbourhood_cleansedKensington-Chinatown                  80.03500   52.99185
+    ## neighbourhood_cleansedKingsview Village-The Westway         61.71418   66.86352
+    ## neighbourhood_cleansedKingsway South                        69.52776  103.45350
+    ## neighbourhood_cleansedL'Amoreaux                            -5.64220   58.64732
+    ## neighbourhood_cleansedLambton Baby Point                    81.90088   76.69245
+    ## neighbourhood_cleansedLansing-Westgate                      45.90434   55.23227
+    ## neighbourhood_cleansedLawrence Park North                   60.24570   59.37516
+    ## neighbourhood_cleansedLawrence Park South                   66.67885   60.69304
+    ## neighbourhood_cleansedLeaside-Bennington                   113.03558   61.82030
+    ## neighbourhood_cleansedLittle Portugal                      105.88329   53.53351
+    ## neighbourhood_cleansedLong Branch                           43.97762   60.16697
+    ## neighbourhood_cleansedMalvern                               18.77242   55.47686
+    ## neighbourhood_cleansedMaple Leaf                            69.77125   73.15677
+    ## neighbourhood_cleansedMarkland Wood                         81.19300   73.13911
+    ## neighbourhood_cleansedMilliken                              43.44646   70.45934
+    ## neighbourhood_cleansedMimico (includes Humber Bay Shores)  108.85120   54.59676
+    ## neighbourhood_cleansedMorningside                           25.44315   64.27982
+    ## neighbourhood_cleansedMoss Park                            110.44136   52.92790
+    ## neighbourhood_cleansedMount Dennis                          -2.25602   64.28681
+    ## neighbourhood_cleansedMount Olive-Silverstone-Jamestown     41.96917   70.51696
+    ## neighbourhood_cleansedMount Pleasant East                   90.45922   60.16782
+    ## neighbourhood_cleansedMount Pleasant West                   78.26881   54.22280
+    ## neighbourhood_cleansedNew Toronto                          154.16413   60.13425
+    ## neighbourhood_cleansedNewtonbrook East                      24.31046   54.68252
+    ## neighbourhood_cleansedNewtonbrook West                      41.79886   54.55382
+    ## neighbourhood_cleansedNiagara                              128.75699   52.76414
+    ## neighbourhood_cleansedNorth Riverdale                       75.06681   56.71663
+    ## neighbourhood_cleansedNorth St.James Town                   77.53105   56.83802
+    ## neighbourhood_cleansedO'Connor-Parkview                     48.42686   58.69231
+    ## neighbourhood_cleansedOakridge                             107.81982   61.81993
+    ## neighbourhood_cleansedOakwood Village                       44.52500   55.91769
+    ## neighbourhood_cleansedOld East York                         55.23230   59.03546
+    ## neighbourhood_cleansedPalmerston-Little Italy               97.83354   53.52078
+    ## neighbourhood_cleansedParkwoods-Donalda                     -1.71112   61.84688
+    ## neighbourhood_cleansedPelmo Park-Humberlea                  45.67588   65.45488
+    ## neighbourhood_cleansedPlayter Estates-Danforth              68.11035   60.69467
+    ## neighbourhood_cleansedPleasant View                         26.90795   57.20589
+    ## neighbourhood_cleansedPrincess-Rosethorn                    56.66022   63.36488
+    ## neighbourhood_cleansedRegent Park                          116.77893   58.39128
+    ## neighbourhood_cleansedRexdale-Kipling                       29.96597   65.47545
+    ## neighbourhood_cleansedRockcliffe-Smythe                     57.00338   73.18242
+    ## neighbourhood_cleansedRoncesvalles                          91.55488   54.83240
+    ## neighbourhood_cleansedRosedale-Moore Park                   95.42178   58.36142
+    ## neighbourhood_cleansedRouge                                 51.97388   62.50737
+    ## neighbourhood_cleansedRunnymede-Bloor West Village          47.50919   66.80825
+    ## neighbourhood_cleansedRustic                                 1.26572  136.83056
+    ## neighbourhood_cleansedScarborough Village                   46.39654   89.58206
+    ## neighbourhood_cleansedSouth Parkdale                        52.80769   53.77613
+    ## neighbourhood_cleansedSouth Riverdale                       98.02956   53.43673
+    ## neighbourhood_cleansedSt.Andrew-Windfields                 126.31466   59.74624
+    ## neighbourhood_cleansedSteeles                               34.14864   60.15610
+    ## neighbourhood_cleansedStonegate-Queensway                   54.79114   55.47941
+    ## neighbourhood_cleansedTam O'Shanter-Sullivan                16.01971   57.60476
+    ## neighbourhood_cleansedTaylor-Massey                         42.73372   66.76877
+    ## neighbourhood_cleansedThe Beaches                           83.81887   54.81486
+    ## neighbourhood_cleansedThistletown-Beaumond Heights          70.05145   89.54699
+    ## neighbourhood_cleansedThorncliffe Park                      54.63062   68.42841
+    ## neighbourhood_cleansedTrinity-Bellwoods                     95.90956   52.90327
+    ## neighbourhood_cleansedUniversity                            57.69736   55.49870
+    ## neighbourhood_cleansedVictoria Village                      18.74031   63.36410
+    ## neighbourhood_cleansedWaterfront Communities-The Island    124.58335   51.90122
+    ## neighbourhood_cleansedWest Hill                             40.95810   58.69203
+    ## neighbourhood_cleansedWest Humber-Clairville                50.91058   57.18502
+    ## neighbourhood_cleansedWestminster-Branson                   33.81502   59.36025
+    ## neighbourhood_cleansedWeston                                45.72387   60.17892
+    ## neighbourhood_cleansedWeston-Pellam Park                    77.89941   57.83086
+    ## neighbourhood_cleansedWexford/Maryvale                      34.08688   56.00245
+    ## neighbourhood_cleansedWillowdale East                       64.18921   52.79958
+    ## neighbourhood_cleansedWillowdale West                       47.73237   55.88899
+    ## neighbourhood_cleansedWillowridge-Martingrove-Richview      27.57079   58.99314
+    ## neighbourhood_cleansedWoburn                                41.88305   58.09477
+    ## neighbourhood_cleansedWoodbine Corridor                    103.72668   58.99319
+    ## neighbourhood_cleansedWoodbine-Lumsden                      55.71530   63.35895
+    ## neighbourhood_cleansedWychwood                              76.10310   56.70259
+    ## neighbourhood_cleansedYonge-Eglinton                        70.34756   58.07453
+    ## neighbourhood_cleansedYonge-St.Clair                        89.76135   61.82675
+    ## neighbourhood_cleansedYork University Heights               34.18108   53.69382
+    ## neighbourhood_cleansedYorkdale-Glen Park                    58.08027   54.54544
+    ## review_scores_cleanliness                                    5.35030    1.76747
+    ## reviews_per_month                                           -4.18285    1.18274
+    ## host_response_rate                                          -0.18150    0.07568
+    ##                                                           t value Pr(>|t|)    
+    ## (Intercept)                                                -2.241 0.025095 *  
+    ## bedrooms                                                   22.463  < 2e-16 ***
+    ## bathrooms_numeric                                           8.428  < 2e-16 ***
+    ## neighbourhood_cleansedAgincourt South-Malvern West          0.505 0.613699    
+    ## neighbourhood_cleansedAlderwood                             0.866 0.386758    
+    ## neighbourhood_cleansedAnnex                                 1.949 0.051371 .  
+    ## neighbourhood_cleansedBanbury-Don Mills                     0.895 0.370746    
+    ## neighbourhood_cleansedBathurst Manor                        2.923 0.003480 ** 
+    ## neighbourhood_cleansedBay Street Corridor                   1.998 0.045816 *  
+    ## neighbourhood_cleansedBayview Village                       1.152 0.249175    
+    ## neighbourhood_cleansedBayview Woods-Steeles                 0.855 0.392806    
+    ## neighbourhood_cleansedBedford Park-Nortown                  0.085 0.932505    
+    ## neighbourhood_cleansedBeechborough-Greenbrook               0.514 0.606939    
+    ## neighbourhood_cleansedBendale                               0.969 0.332487    
+    ## neighbourhood_cleansedBirchcliffe-Cliffside                 0.384 0.701008    
+    ## neighbourhood_cleansedBlack Creek                          -1.503 0.132872    
+    ## neighbourhood_cleansedBlake-Jones                           1.106 0.268705    
+    ## neighbourhood_cleansedBriar Hill-Belgravia                  0.490 0.624495    
+    ## neighbourhood_cleansedBridle Path-Sunnybrook-York Mills     0.842 0.399556    
+    ## neighbourhood_cleansedBroadview North                       2.529 0.011477 *  
+    ## neighbourhood_cleansedBrookhaven-Amesbury                   0.357 0.721206    
+    ## neighbourhood_cleansedCabbagetown-South St.James Town       2.089 0.036784 *  
+    ## neighbourhood_cleansedCaledonia-Fairbank                    0.707 0.479358    
+    ## neighbourhood_cleansedCasa Loma                             1.888 0.059113 .  
+    ## neighbourhood_cleansedCentennial Scarborough                0.973 0.330470    
+    ## neighbourhood_cleansedChurch-Yonge Corridor                 2.051 0.040333 *  
+    ## neighbourhood_cleansedClairlea-Birchmount                   1.416 0.156746    
+    ## neighbourhood_cleansedClanton Park                          0.470 0.638703    
+    ## neighbourhood_cleansedCliffcrest                            0.865 0.387239    
+    ## neighbourhood_cleansedCorso Italia-Davenport                0.781 0.434823    
+    ## neighbourhood_cleansedDanforth                              1.186 0.235770    
+    ## neighbourhood_cleansedDanforth East York                    1.132 0.257624    
+    ## neighbourhood_cleansedDon Valley Village                    0.826 0.409110    
+    ## neighbourhood_cleansedDorset Park                           0.661 0.508478    
+    ## neighbourhood_cleansedDovercourt-Wallace Emerson-Junction   1.044 0.296553    
+    ## neighbourhood_cleansedDownsview-Roding-CFB                  0.442 0.658497    
+    ## neighbourhood_cleansedDufferin Grove                        1.245 0.213200    
+    ## neighbourhood_cleansedEast End-Danforth                     1.006 0.314472    
+    ## neighbourhood_cleansedEdenbridge-Humber Valley              0.783 0.433781    
+    ## neighbourhood_cleansedEglinton East                         0.481 0.630598    
+    ## neighbourhood_cleansedElms-Old Rexdale                      1.056 0.291075    
+    ## neighbourhood_cleansedEnglemount-Lawrence                   0.736 0.462002    
+    ## neighbourhood_cleansedEringate-Centennial-West Deane        0.915 0.360432    
+    ## neighbourhood_cleansedEtobicoke West Mall                   1.175 0.240188    
+    ## neighbourhood_cleansedFlemingdon Park                       0.525 0.599656    
+    ## neighbourhood_cleansedForest Hill North                     0.990 0.322405    
+    ## neighbourhood_cleansedForest Hill South                     0.540 0.589019    
+    ## neighbourhood_cleansedGlenfield-Jane Heights                0.552 0.580721    
+    ## neighbourhood_cleansedGreenwood-Coxwell                     1.316 0.188370    
+    ## neighbourhood_cleansedGuildwood                             0.318 0.750798    
+    ## neighbourhood_cleansedHenry Farm                            1.124 0.260889    
+    ## neighbourhood_cleansedHigh Park North                       0.859 0.390295    
+    ## neighbourhood_cleansedHigh Park-Swansea                     1.575 0.115269    
+    ## neighbourhood_cleansedHighland Creek                        0.306 0.759541    
+    ## neighbourhood_cleansedHillcrest Village                     0.149 0.881941    
+    ## neighbourhood_cleansedHumber Heights-Westmount              0.993 0.320825    
+    ## neighbourhood_cleansedHumber Summit                         0.520 0.603095    
+    ## neighbourhood_cleansedHumbermede                            1.015 0.310261    
+    ## neighbourhood_cleansedHumewood-Cedarvale                    0.971 0.331653    
+    ## neighbourhood_cleansedIonview                               0.274 0.783740    
+    ## neighbourhood_cleansedIslington-City Centre West            0.840 0.400879    
+    ## neighbourhood_cleansedJunction Area                         1.074 0.282848    
+    ## neighbourhood_cleansedKeelesdale-Eglinton West              0.627 0.530716    
+    ## neighbourhood_cleansedKennedy Park                          0.426 0.670461    
+    ## neighbourhood_cleansedKensington-Chinatown                  1.510 0.131024    
+    ## neighbourhood_cleansedKingsview Village-The Westway         0.923 0.356059    
+    ## neighbourhood_cleansedKingsway South                        0.672 0.501572    
+    ## neighbourhood_cleansedL'Amoreaux                           -0.096 0.923361    
+    ## neighbourhood_cleansedLambton Baby Point                    1.068 0.285612    
+    ## neighbourhood_cleansedLansing-Westgate                      0.831 0.405949    
+    ## neighbourhood_cleansedLawrence Park North                   1.015 0.310317    
+    ## neighbourhood_cleansedLawrence Park South                   1.099 0.271985    
+    ## neighbourhood_cleansedLeaside-Bennington                    1.828 0.067542 .  
+    ## neighbourhood_cleansedLittle Portugal                       1.978 0.047997 *  
+    ## neighbourhood_cleansedLong Branch                           0.731 0.464859    
+    ## neighbourhood_cleansedMalvern                               0.338 0.735089    
+    ## neighbourhood_cleansedMaple Leaf                            0.954 0.340271    
+    ## neighbourhood_cleansedMarkland Wood                         1.110 0.267002    
+    ## neighbourhood_cleansedMilliken                              0.617 0.537515    
+    ## neighbourhood_cleansedMimico (includes Humber Bay Shores)   1.994 0.046236 *  
+    ## neighbourhood_cleansedMorningside                           0.396 0.692256    
+    ## neighbourhood_cleansedMoss Park                             2.087 0.036972 *  
+    ## neighbourhood_cleansedMount Dennis                         -0.035 0.972007    
+    ## neighbourhood_cleansedMount Olive-Silverstone-Jamestown     0.595 0.551761    
+    ## neighbourhood_cleansedMount Pleasant East                   1.503 0.132787    
+    ## neighbourhood_cleansedMount Pleasant West                   1.443 0.148952    
+    ## neighbourhood_cleansedNew Toronto                           2.564 0.010387 *  
+    ## neighbourhood_cleansedNewtonbrook East                      0.445 0.656647    
+    ## neighbourhood_cleansedNewtonbrook West                      0.766 0.443597    
+    ## neighbourhood_cleansedNiagara                               2.440 0.014713 *  
+    ## neighbourhood_cleansedNorth Riverdale                       1.324 0.185717    
+    ## neighbourhood_cleansedNorth St.James Town                   1.364 0.172608    
+    ## neighbourhood_cleansedO'Connor-Parkview                     0.825 0.409356    
+    ## neighbourhood_cleansedOakridge                              1.744 0.081205 .  
+    ## neighbourhood_cleansedOakwood Village                       0.796 0.425919    
+    ## neighbourhood_cleansedOld East York                         0.936 0.349536    
+    ## neighbourhood_cleansedPalmerston-Little Italy               1.828 0.067617 .  
+    ## neighbourhood_cleansedParkwoods-Donalda                    -0.028 0.977929    
+    ## neighbourhood_cleansedPelmo Park-Humberlea                  0.698 0.485321    
+    ## neighbourhood_cleansedPlayter Estates-Danforth              1.122 0.261840    
+    ## neighbourhood_cleansedPleasant View                         0.470 0.638111    
+    ## neighbourhood_cleansedPrincess-Rosethorn                    0.894 0.371264    
+    ## neighbourhood_cleansedRegent Park                           2.000 0.045562 *  
+    ## neighbourhood_cleansedRexdale-Kipling                       0.458 0.647212    
+    ## neighbourhood_cleansedRockcliffe-Smythe                     0.779 0.436063    
+    ## neighbourhood_cleansedRoncesvalles                          1.670 0.095038 .  
+    ## neighbourhood_cleansedRosedale-Moore Park                   1.635 0.102110    
+    ## neighbourhood_cleansedRouge                                 0.831 0.405740    
+    ## neighbourhood_cleansedRunnymede-Bloor West Village          0.711 0.477039    
+    ## neighbourhood_cleansedRustic                                0.009 0.992620    
+    ## neighbourhood_cleansedScarborough Village                   0.518 0.604536    
+    ## neighbourhood_cleansedSouth Parkdale                        0.982 0.326152    
+    ## neighbourhood_cleansedSouth Riverdale                       1.834 0.066640 .  
+    ## neighbourhood_cleansedSt.Andrew-Windfields                  2.114 0.034549 *  
+    ## neighbourhood_cleansedSteeles                               0.568 0.570287    
+    ## neighbourhood_cleansedStonegate-Queensway                   0.988 0.323400    
+    ## neighbourhood_cleansedTam O'Shanter-Sullivan                0.278 0.780950    
+    ## neighbourhood_cleansedTaylor-Massey                         0.640 0.522186    
+    ## neighbourhood_cleansedThe Beaches                           1.529 0.126297    
+    ## neighbourhood_cleansedThistletown-Beaumond Heights          0.782 0.434083    
+    ## neighbourhood_cleansedThorncliffe Park                      0.798 0.424699    
+    ## neighbourhood_cleansedTrinity-Bellwoods                     1.813 0.069904 .  
+    ## neighbourhood_cleansedUniversity                            1.040 0.298569    
+    ## neighbourhood_cleansedVictoria Village                      0.296 0.767429    
+    ## neighbourhood_cleansedWaterfront Communities-The Island     2.400 0.016414 *  
+    ## neighbourhood_cleansedWest Hill                             0.698 0.485305    
+    ## neighbourhood_cleansedWest Humber-Clairville                0.890 0.373360    
+    ## neighbourhood_cleansedWestminster-Branson                   0.570 0.568936    
+    ## neighbourhood_cleansedWeston                                0.760 0.447411    
+    ## neighbourhood_cleansedWeston-Pellam Park                    1.347 0.178035    
+    ## neighbourhood_cleansedWexford/Maryvale                      0.609 0.542773    
+    ## neighbourhood_cleansedWillowdale East                       1.216 0.224152    
+    ## neighbourhood_cleansedWillowdale West                       0.854 0.393115    
+    ## neighbourhood_cleansedWillowridge-Martingrove-Richview      0.467 0.640266    
+    ## neighbourhood_cleansedWoburn                                0.721 0.470978    
+    ## neighbourhood_cleansedWoodbine Corridor                     1.758 0.078761 .  
+    ## neighbourhood_cleansedWoodbine-Lumsden                      0.879 0.379249    
+    ## neighbourhood_cleansedWychwood                              1.342 0.179611    
+    ## neighbourhood_cleansedYonge-Eglinton                        1.211 0.225826    
+    ## neighbourhood_cleansedYonge-St.Clair                        1.452 0.146615    
+    ## neighbourhood_cleansedYork University Heights               0.637 0.524420    
+    ## neighbourhood_cleansedYorkdale-Glen Park                    1.065 0.287016    
+    ## review_scores_cleanliness                                   3.027 0.002482 ** 
+    ## reviews_per_month                                          -3.537 0.000409 ***
+    ## host_response_rate                                         -2.398 0.016516 *  
     ## ---
     ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
     ## 
-    ## Residual standard error: 243.1 on 8298 degrees of freedom
-    ## Multiple R-squared:  0.06842,    Adjusted R-squared:  0.06808 
-    ## F-statistic: 203.1 on 3 and 8298 DF,  p-value: < 2.2e-16
+    ## Residual standard error: 126.6 on 4942 degrees of freedom
+    ## Multiple R-squared:  0.2705, Adjusted R-squared:  0.2492 
+    ## F-statistic: 12.72 on 144 and 4942 DF,  p-value: < 2.2e-16
 
 ``` r
 #making price predictions
-price_predictions <- predict(price_inital_model, feb_21_airbnb_test)
-
-
-#RMSE function
-rmse <-function(x, y)sqrt(mean((x-y)^2))
-#computing RMSE
-rmse(price_predictions, feb_21_airbnb_test$price)
+price_predictions <- c(predict(price_inital_model, feb_21_airbnb_test))
+#true values of price
+price_feb <- c(feb_21_airbnb_test$price)
+#computing RMSE with the yardstick package
+yardstick::rmse_vec(price_feb, price_predictions)
 ```
 
-    ## [1] NA
+    ## [1] 333.8244
 
-We can see that both the RMSE is high, and the R-squared for the model
-is low. This indicates that this linear regression model preformed
-poorly in predicting price in February 2021.
+We can see that both the RMSE is high (333.8244), and the R-squared for
+the model is low (0.2492). This indicates that this linear regression
+model preformed poorly in predicting price in February 2021.

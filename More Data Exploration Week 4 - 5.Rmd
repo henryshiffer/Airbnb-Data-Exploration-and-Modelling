@@ -18,6 +18,7 @@ library(ggmap)
 library(varhandle)
 library(caret)
 library(readr)
+library(yardstick)
 ```
 
 
@@ -60,11 +61,12 @@ We can gain a view of where in Toronto has the highest and lowest Airbnb review 
 
 
 
-```{r}
+```{r message=FALSE}
 #getting rid of NA values for review_scores_rating in the original data-set
 rsr_filtered_airbnb <- feb_21_airbnb %>%
   filter(!is.na(review_scores_rating))
 
+#scale_colour_distiller(palette = "RdYlBu")
 #mapping the NA value filtered review_scores_ratings values
 rsr_filtered_borders <- c(bottom  = min(rsr_filtered_airbnb$latitude), 
                 top = max(rsr_filtered_airbnb$latitude),
@@ -72,7 +74,9 @@ rsr_filtered_borders <- c(bottom  = min(rsr_filtered_airbnb$latitude),
                 right = max(rsr_filtered_airbnb$longitude))
 map1 <- get_stamenmap(rsr_filtered_borders, maptype = "toner-lite")
 ggmap(map1) + geom_point(data = rsr_filtered_airbnb, mapping = aes(x = longitude, y = latitude, 
-                                               col = review_scores_rating)) + scale_colour_distiller(palette = "RdYlBu") + ggtitle("Feb 2021 Review Scores")
+                                               col = review_scores_rating)) +
+  scale_colour_distiller(palette = "RdYlBu") +
+  geom_jitter(alpha = 0.4) + ggtitle("Feb 2021 Review Scores")
 ```
 
 
@@ -99,7 +103,7 @@ If these listings have hosts that are superhosts, the listings have a better cha
 
 
 
-```{r}
+```{r message=FALSE}
 #getting rid of NA values for host_is_superhost in the original data-set
 super_filtered_airbnb <- feb_21_airbnb %>%
   filter(!is.na(host_is_superhost))
@@ -111,7 +115,8 @@ super_filtered_borders <- c(bottom  = min(super_filtered_airbnb$latitude),
                 right = max(super_filtered_airbnb$longitude))
 map2 <- get_stamenmap(super_filtered_borders, maptype = "toner-lite")
 ggmap(map2) + geom_point(data = super_filtered_airbnb, mapping = aes(x = longitude, y = latitude, 
-                                               col = host_is_superhost)) + ggtitle("Feb 2021 Superhosts")
+                                               col = host_is_superhost)) + 
+  geom_jitter(alpha = 0.4) + ggtitle("Feb 2021 Superhosts")
 ```
 
 
@@ -129,7 +134,7 @@ We can see that there does exists a good amount of superhost listings, but ultim
 To also get a sense of listing quality, we can plot bedroom amount on the map.
 
 
-```{r}
+```{r message=FALSE}
 #getting rid of NA values for host_is_superhost in the original data-set
 bedrooms_filtered_airbnb <- feb_21_airbnb %>%
   filter(!is.na(bedrooms))
@@ -141,7 +146,10 @@ bedrooms_filtered_borders <- c(bottom  = min(bedrooms_filtered_airbnb$latitude),
                 right = max(bedrooms_filtered_airbnb$longitude))
 map3 <- get_stamenmap(bedrooms_filtered_borders, maptype = "toner-lite")
 ggmap(map3) + geom_point(data = bedrooms_filtered_airbnb, mapping = aes(x = longitude, y = latitude, 
-                                               col = bedrooms)) + scale_colour_distiller(palette = "RdYlBu") + ggtitle("Feb 2021 Bedroom Amount")
+                                               col = bedrooms)) +
+  scale_colour_distiller(palette = "RdYlBu") +
+  geom_jitter(alpha = 0.4) +
+  ggtitle("Feb 2021 Bedroom Amount")
 ```
 
 
@@ -161,7 +169,7 @@ We can gain a view of Toronto Airbnb listing cleanliness on a map of the city.
 
 
 
-```{r}
+```{r message=FALSE}
 #getting rid of NA values for review_scores_cleanliness in the original data-set
 clean_filtered_airbnb <- feb_21_airbnb %>%
   filter(!is.na(review_scores_cleanliness))
@@ -173,7 +181,10 @@ clean_filtered_borders <- c(bottom  = min(clean_filtered_airbnb$latitude),
                 right = max(clean_filtered_airbnb$longitude))
 map4 <- get_stamenmap(clean_filtered_borders, maptype = "toner-lite")
 ggmap(map4) + geom_point(data = clean_filtered_airbnb, mapping = aes(x = longitude, y = latitude, 
-                                               col = review_scores_cleanliness)) + scale_colour_distiller(palette = "RdYlBu") + ggtitle("Feb 2021 Cleanliness Ratings")
+                                               col = review_scores_cleanliness)) +
+  scale_colour_distiller(palette = "RdYlBu") +
+  geom_jitter(alpha = 0.4) +
+  ggtitle("Feb 2021 Cleanliness Ratings")
 ```
 
 
@@ -238,6 +249,21 @@ feb_21_airbnb <- feb_21_airbnb %>%
 ```
 
 
+
+We can see that host response rates are coded as characters. We can code them as integers instead.
+
+```{r}
+glimpse(feb_21_airbnb$host_response_rate)
+```
+
+
+```{r message = FALSE}
+#stripping away % and from host_response_rate and converting to integer
+feb_21_airbnb <- feb_21_airbnb %>% 
+  mutate(host_response_rate = str_remove(host_response_rate, "\\%"),
+         host_response_rate = as.integer(host_response_rate)
+         )
+```
 
 
 
@@ -424,8 +450,8 @@ summary(price_and_hostresp)
 
 
 
+We can see that the p-value for the host_response_rate covariate is 0.137 when that variable is the only predictor.
 
-We can see there are two significant host response rates when host response rate is the only variable included at the 0.05 significance level. These are host_response_rate66% and host_response_rate10%.
 
 
 
@@ -585,27 +611,13 @@ We can see from the AIC backwards selection that the resulting linear model has 
 
 > minimum_nights
 
+> neighbourhood_cleansed
 
+> review_scores_cleanliness
 
+> reviews_per_month
 
-We can now fit a model with the selected variables
-
-```{r}
-#variable selected model
-variable_selected_mod <- lm(formula = price ~ bedrooms + bathrooms_numeric +
-    minimum_nights, data = feb_21_airbnb_train)
-
-
-#summary of variable selected model
-summary(variable_selected_mod)
-```
-
-
-
-
-We can see that bedrooms, bathrooms_numeric, review_scores_cleanliness, and minimum_nights are all significant at 0.05.
-
-
+> host_response_rate
 
 
 
@@ -617,26 +629,25 @@ We can see that bedrooms, bathrooms_numeric, review_scores_cleanliness, and mini
 ### Prediction of Price:
 
 
-We can now see how the model preforms in prediction.
-
+We can now see how the resulting model preforms in prediction.
 
 
 
 ```{r}
 #initial price model
-price_inital_model <- lm(formula = price ~ bedrooms + bathrooms_numeric +
-    minimum_nights, data = feb_21_airbnb_train)
+price_inital_model <- lm(formula = price ~ bedrooms + bathrooms_numeric + neighbourhood_cleansed + 
+    review_scores_cleanliness + reviews_per_month + host_response_rate, 
+    data = feb_21_airbnb_train)
+  
 
-
+#summary of the initial price model
 summary(price_inital_model)
 #making price predictions
-price_predictions <- predict(price_inital_model, feb_21_airbnb_test)
-
-
-#RMSE function
-rmse <-function(x, y)sqrt(mean((x-y)^2))
-#computing RMSE
-rmse(price_predictions, feb_21_airbnb_test$price)
+price_predictions <- c(predict(price_inital_model, feb_21_airbnb_test))
+#true values of price
+price_feb <- c(feb_21_airbnb_test$price)
+#computing RMSE with the yardstick package
+yardstick::rmse_vec(price_feb, price_predictions)
 ```
 
 
@@ -644,7 +655,7 @@ rmse(price_predictions, feb_21_airbnb_test$price)
 
 
 
-We can see that both the RMSE is high, and the R-squared for the model is low. This indicates that this linear regression model preformed poorly in predicting price in February 2021.  
+We can see that both the RMSE is high (333.8244), and the R-squared for the model is low (0.2492). This indicates that this linear regression model preformed poorly in predicting price in February 2021.
 
 
 

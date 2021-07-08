@@ -1,0 +1,567 @@
+---
+title: "Initial Modelling Full Data"
+author: "Henry Shiffer"
+output: github_document
+always_allow_html: true
+---
+
+
+### Creating/Cleaning Full Data Set:
+
+> Before any modelling can take place, all the data must be loaded and fit together. Much of the data needs cleaning.
+
+
+
+
+Loading all month's data:
+
+
+```{r message = FALSE}
+library(tidyverse) 
+library(tidymodels) 
+library(ggmap)
+library(varhandle)
+library(caret)
+library(readr)
+library(yardstick)
+library(dplyr)
+library(purrr)
+library(stringr)
+library(olsrr)
+```
+
+
+```{r message = FALSE}
+#February 2020 
+feb_20_airbnb <- read_csv("AirbnbFebruary2020.csv", guess_max = 20000)
+#March 2020
+mar_20_airbnb <- read_csv("AirbnbMarch2020.csv", guess_max = 20000)
+#April 2020
+apr_20_airbnb <- read_csv("AirbnbApril2020.csv", guess_max = 20000)
+#May 2020
+may_20_airbnb <- read_csv("AirbnbMay2020.csv", guess_max = 20000)
+#June 2020
+jun_20_airbnb <- read_csv("AirbnbJune2020.csv", guess_max = 20000)
+#July 2020
+jul_20_airbnb <- read_csv("AirbnbJuly2020.csv", guess_max = 20000)
+#August 2020
+aug_20_airbnb <- read_csv("AirbnbAugust2020.csv", guess_max = 20000)
+#September 2020
+sept_20_airbnb <- read_csv("AirbnbSeptember2020.csv", guess_max = 20000)
+#October 2020
+oct_20_airbnb <- read_csv("AirbnbOctober2020.csv", guess_max = 20000)
+#November 2020
+nov_20_airbnb <- read_csv("AirbnbNovember2020.csv", guess_max = 20000)
+#December 2020
+dec_20_airbnb <- read_csv("AirbnbDecember2020.csv", guess_max = 20000)
+#January 2021
+jan_21_airbnb <- read_csv("AirbnbJanuary2021.csv", guess_max = 20000)
+#Feb 2021
+feb_21_airbnb <- read_csv("AirbnbFebruary2021.csv", guess_max = 20000)
+#March 2021
+mar_21_airbnb <- read_csv("AirbnbMarch2021.csv", guess_max = 20000)
+#April 2021
+apr_21_airbnb <- read_csv("AirbnbApril2021.csv", guess_max = 20000)
+```
+
+
+
+```{r}
+#adding a month/year variable to each data set
+feb_20_airbnb$month_year = "February_2020"
+mar_20_airbnb$month_year = "March_2020"
+apr_20_airbnb$month_year = "April_2020"
+may_20_airbnb$month_year = "May_2020"
+jun_20_airbnb$month_year = "June_2020"
+jul_20_airbnb$month_year = "July_2020"
+aug_20_airbnb$month_year = "August_2020"
+sept_20_airbnb$month_year = "September_2020"
+oct_20_airbnb$month_year = "October_2020"
+nov_20_airbnb$month_year = "November_2020"
+dec_20_airbnb$month_year = "December_2020"
+jan_21_airbnb$month_year = "January_2021"
+feb_21_airbnb$month_year = "February_2021"
+mar_21_airbnb$month_year = "March_2021"
+apr_21_airbnb$month_year = "April_2021"
+```
+
+
+
+
+There are some months that have bathrooms listed and saved as character elements. We must rename the bathroom column in these month's to "bathrooms", as the original bathrooms column is corrupted. 
+
+
+
+
+```{r}
+aug_20_airbnb <- subset(aug_20_airbnb, select = -c(bathrooms))
+colnames(aug_20_airbnb)[colnames(aug_20_airbnb) == 'bathrooms_text'] <- 'bathrooms'
+
+sept_20_airbnb <- subset(sept_20_airbnb, select = -c(bathrooms))
+colnames(sept_20_airbnb)[colnames(sept_20_airbnb) == 'bathrooms_text'] <- 'bathrooms'
+
+oct_20_airbnb <- subset(oct_20_airbnb, select = -c(bathrooms))
+colnames(oct_20_airbnb)[colnames(oct_20_airbnb) == 'bathrooms_text'] <- 'bathrooms'
+
+nov_20_airbnb <- subset(nov_20_airbnb, select = -c(bathrooms))
+colnames(nov_20_airbnb)[colnames(nov_20_airbnb) == 'bathrooms_text'] <- 'bathrooms'
+
+dec_20_airbnb <- subset(dec_20_airbnb, select = -c(bathrooms))
+colnames(dec_20_airbnb)[colnames(dec_20_airbnb) == 'bathrooms_text'] <- 'bathrooms'
+
+jan_21_airbnb <- subset(jan_21_airbnb, select = -c(bathrooms))
+colnames(jan_21_airbnb)[colnames(jan_21_airbnb) == 'bathrooms_text'] <- 'bathrooms'
+
+mar_21_airbnb <- subset(mar_21_airbnb, select = -c(bathrooms))
+colnames(mar_21_airbnb)[colnames(mar_21_airbnb) == 'bathrooms_text'] <- 'bathrooms'
+
+apr_21_airbnb <- subset(apr_21_airbnb, select = -c(bathrooms))
+colnames(apr_21_airbnb)[colnames(apr_21_airbnb) == 'bathrooms_text'] <- 'bathrooms'
+
+feb_21_airbnb <- subset(feb_21_airbnb, select = -c(bathrooms))
+colnames(feb_21_airbnb)[colnames(feb_21_airbnb) == 'bathrooms_text'] <- 'bathrooms'
+```
+
+
+
+
+However, first we know that the bathroom columns in these months are characters and not numeric. We must convert these to numeric values before we can merge rows.
+
+
+```{r}
+glimpse(feb_21_airbnb$bathrooms)
+```
+
+
+
+
+
+
+```{r warning=FALSE, message=FALSE}
+#parse_number() drops any non-numeric characters
+aug_20_airbnb$bathrooms <- parse_number(aug_20_airbnb$bathrooms)
+sept_20_airbnb$bathrooms <- parse_number(sept_20_airbnb$bathrooms)
+oct_20_airbnb$bathrooms <- parse_number(oct_20_airbnb$bathrooms)
+nov_20_airbnb$bathrooms <- parse_number(nov_20_airbnb$bathrooms)
+dec_20_airbnb$bathrooms <- parse_number(dec_20_airbnb$bathrooms)
+jan_21_airbnb$bathrooms <- parse_number(jan_21_airbnb$bathrooms)
+mar_21_airbnb$bathrooms <- parse_number(mar_21_airbnb$bathrooms)
+apr_21_airbnb$bathrooms <- parse_number(apr_21_airbnb$bathrooms)
+feb_21_airbnb$bathrooms <- parse_number(feb_21_airbnb$bathrooms)
+```
+
+
+
+
+
+
+Each month's data-set might not have the same exact set of variables. We must first clean each month's data by making sure each variable is both named the same, and that each set has the same set of variables. 
+
+
+
+We can start first with Feb 2020. Using Feb 2021 as a reference, we can see which variables are the same in both.
+
+```{r}
+cols_to_keep <- intersect(colnames(feb_20_airbnb),colnames(feb_21_airbnb))
+feb_20_airbnb <- subset(feb_20_airbnb, select = cols_to_keep)
+feb_21_airbnb <- subset(feb_21_airbnb, select = cols_to_keep)
+```
+
+
+
+
+
+
+
+Using the intersecting of variables of February 2020 and February 2021, we can drop the variables that are not intersecting.
+
+
+Cleaning March 2020
+
+```{r}
+cols_to_keep2 <- intersect(colnames(mar_20_airbnb), colnames(feb_21_airbnb))
+mar_20_airbnb <- subset(mar_20_airbnb, select = cols_to_keep2)
+```
+
+
+Cleaning April 2020
+
+```{r}
+cols_to_keep3 <- intersect(colnames(apr_20_airbnb), colnames(feb_21_airbnb))
+apr_20_airbnb <- subset(apr_20_airbnb, select = cols_to_keep3)
+```
+
+Cleaning May 2020:
+
+```{r}
+cols_to_keep4 <- intersect(colnames(may_20_airbnb), colnames(feb_21_airbnb))
+may_20_airbnb <- subset(may_20_airbnb, select = cols_to_keep4)
+```
+
+Cleaning June 2020:
+
+```{r}
+cols_to_keep5 <- intersect(colnames(jun_20_airbnb), colnames(feb_21_airbnb))
+jun_20_airbnb <- subset(jun_20_airbnb, select = cols_to_keep5)
+```
+
+
+We can see that July 2020 does not have a price column. We can replace this price column with Weekly price for now. We also see that July 2020 does not have a bedrooms column. We can set these as NA for now.
+
+
+We can also see that July does not contain amenities, We will include these as NA values. We can also see that there is no variable named minimum and maximum nights in the July data set so we will create ones
+
+```{r}
+
+colnames(jul_20_airbnb)[colnames(jul_20_airbnb) == 'weekly_price'] <- 'price'
+jul_20_airbnb$bedrooms = NA
+jul_20_airbnb$beds = NA
+jul_20_airbnb$amenities = NA
+colnames(jul_20_airbnb)[colnames(jul_20_airbnb) == 'minimum_minimum_nights'] <- 'minimum_nights'
+colnames(jul_20_airbnb)[colnames(jul_20_airbnb) == 'maximum_maximum_nights'] <- 'maximum_nights'
+jul_20_airbnb$minimum_minimum_nights = jul_20_airbnb$minimum_nights
+jul_20_airbnb$maximum_maximum_nights = jul_20_airbnb$maximum_nights
+cols_to_keep6 <- intersect(colnames(jul_20_airbnb), colnames(feb_21_airbnb))
+jul_20_airbnb <- subset(jul_20_airbnb, select = cols_to_keep6)
+```
+
+Cleaning August 2020:
+
+```{r}
+set_diffs <- setdiff(colnames(feb_21_airbnb), colnames(aug_20_airbnb))
+cols_to_keep7 <- intersect(colnames(aug_20_airbnb), colnames(feb_21_airbnb))
+aug_20_airbnb <- subset(aug_20_airbnb, select = cols_to_keep7)
+```
+
+Cleaning September 2020:
+
+```{r}
+set_diffs <- setdiff(colnames(feb_21_airbnb), colnames(sept_20_airbnb))
+cols_to_keep8 <- intersect(colnames(sept_20_airbnb), colnames(feb_21_airbnb))
+sept_20_airbnb <- subset(sept_20_airbnb, select = cols_to_keep8)
+```
+
+Cleaning October 2020:
+
+```{r}
+cols_to_keep9 <- intersect(colnames(oct_20_airbnb), colnames(feb_21_airbnb))
+oct_20_airbnb <- subset(oct_20_airbnb, select = cols_to_keep9)
+```
+
+Cleaning November 2020:
+
+```{r}
+cols_to_keep10 <- intersect(colnames(nov_20_airbnb), colnames(feb_21_airbnb))
+nov_20_airbnb <- subset(nov_20_airbnb, select = cols_to_keep10)
+```
+
+Cleaning December 2020:
+
+```{r}
+cols_to_keep11 <- intersect(colnames(dec_20_airbnb), colnames(feb_21_airbnb))
+dec_20_airbnb <- subset(dec_20_airbnb, select = cols_to_keep11)
+```
+
+Cleaning January 2021:
+
+```{r}
+cols_to_keep12 <- intersect(colnames(jan_21_airbnb), colnames(feb_21_airbnb))
+jan_21_airbnb <- subset(jan_21_airbnb, select = cols_to_keep12)
+```
+
+Cleaning March 2021:
+
+```{r}
+cols_to_keep13 <- intersect(colnames(mar_21_airbnb), colnames(feb_21_airbnb))
+mar_21_airbnb <- subset(mar_21_airbnb, select = cols_to_keep13)
+```
+
+Cleaning April 2021:
+
+```{r}
+cols_to_keep14 <- intersect(colnames(apr_21_airbnb), colnames(feb_21_airbnb))
+apr_21_airbnb <- subset(apr_21_airbnb, select = cols_to_keep14)
+```
+
+
+
+Now that each data set has the same columns, we can merge this data to create a full Airbnb data set.
+
+
+
+```{r}
+merge_1 <- rbind(feb_20_airbnb, mar_20_airbnb)
+merge_2 <- rbind(merge_1, apr_20_airbnb)
+merge_3 <- rbind(merge_2, may_20_airbnb)
+merge_4 <- rbind(merge_3, jun_20_airbnb)
+merge_5 <- rbind(merge_4, jul_20_airbnb)
+merge_6 <- rbind(merge_5, aug_20_airbnb)
+merge_7 <- rbind(merge_6, sept_20_airbnb)
+merge_8 <- rbind(merge_7, oct_20_airbnb)
+merge_9 <- rbind(merge_8, nov_20_airbnb)
+merge_10 <- rbind(merge_9, dec_20_airbnb)
+merge_11 <- rbind(merge_10, jan_21_airbnb)
+merge_12 <- rbind(merge_11, feb_21_airbnb)
+merge_13 <- rbind(merge_12, mar_21_airbnb)
+airbnb_data <- rbind(merge_13, apr_21_airbnb)
+glimpse(airbnb_data)
+```
+
+
+
+
+The full data-set contains many locations that are not of interest as they are far away from the downtown core of Toronto, we're going to subset the neighbourhoods around University of Toronto from the full data set. We are going to pick the neighbourhoods:
+
+> Kensington-Chinatown
+
+> Annex
+
+> University
+
+> Church-Yonge Corridor
+
+> Bay Street Corridor
+
+
+
+```{r}
+#subsetting the data set to get the neighbourhoods of intrest
+airbnb_data <- subset.data.frame(airbnb_data, neighbourhood_cleansed == c("Kensington-Chinatown",
+                                                                          "Annex","University",
+                                                                          "Church-Yonge Corridor",
+                                                                          "Bay Street Corridor"))
+```
+
+
+
+
+
+Now we can replace the missing bedroom amount in July 2020 with the bedroom amount in other months using the unique id column.
+
+
+```{r}
+#getting july rows and ids
+july_rows <- filter(airbnb_data, month_year == "July_2020")
+july_ids <- c(july_rows$id)
+
+
+#getting the bedroom amounts from other months
+bedrooms_for_july_ids_from_other_months <-
+	airbnb_data %>%
+	filter(id %in% july_ids) %>%
+	filter(month_year != "July_2020") %>%
+	select(id, bedrooms) %>%
+	distinct()
+
+
+
+#updating the july data with bedroom amounts from other months
+july_rows <-
+  july_rows %>% 
+	select(-bedrooms) %>%
+	left_join(bedrooms_for_july_ids_from_other_months, by = "id")
+
+```
+
+
+```{r}
+glimpse(july_rows)
+```
+
+
+
+```{r}
+airbnb_data <- subset.data.frame(airbnb_data, month_year != "July_2020")
+airbnb_data <- rbind(airbnb_data, july_rows)
+```
+
+
+
+
+Now for cleaning the price column by removing all dollar signs and commas and converting these values to integers.
+
+
+```{r}
+airbnb_data <- airbnb_data %>% 
+  mutate(price = str_remove(price, "\\$"),
+         price = str_remove(price, ","),
+         price = as.integer(price)
+         )
+```
+
+
+
+We can also see that host response rates are coded as characters. We can code them as integers instead.
+
+```{r}
+glimpse(airbnb_data$host_response_rate)
+```
+
+
+```{r message = FALSE, warning=FALSE}
+#stripping away % and from host_response_rate and converting to integer
+airbnb_data <- airbnb_data %>% 
+  mutate(host_response_rate = str_remove(host_response_rate, "\\%"),
+         host_response_rate = as.integer(host_response_rate)
+         )
+```
+
+
+
+
+
+
+
+
+
+### Variable Selection Full Data:
+
+
+We can do an initial linear model.
+
+
+Listing quality was defined by this project as bedroom and bathroom amount, the rating from review scores, neighbourhood, and if a host was a superhost or not. From here we can select indicators that measure these attributes and examine their relationship with price, and the trends that exist within them.
+
+These variables are most consistent with Airbnb quality:
+
+> bedrooms
+
+> bathrooms
+
+> neighbourhood_cleansed
+
+> review_scores_cleanliness 
+
+> review_scores_rating
+
+> reviews_per_month
+
+> host_response_rate
+
+> minimum_nights
+ 
+> maximum_nights
+ 
+> host_is_superhost
+
+
+
+We can now run both backwards selection and forwards selection stepwise regression with AIC criteria to select the best variables of the Airbnb quality variables to add to the model.
+
+
+
+
+
+First running backwards selection stepwise regression:
+
+```{r}
+#fitting a model with all Airbnb quality variables
+quality_vs_price <- lm(price~ +
+                         bedrooms +
+                         bathrooms +
+                         neighbourhood_cleansed +
+                         month_year +
+                         reviews_per_month +
+                         host_is_superhost +
+                         minimum_nights +
+                         maximum_nights +
+                         review_scores_rating +
+                         host_response_rate +
+                         review_scores_cleanliness, data = airbnb_data)
+#backwards selection
+ols_step_backward_p(quality_vs_price, details = TRUE)
+```
+
+
+
+
+
+Now we can run a forward selection stepwise regression. 
+
+
+```{r}
+#fitting an intercept only model
+quality_vs_price_interceptonly <- lm(price ~ 1, data = airbnb_data)
+#forward selection
+ols_step_forward_p(quality_vs_price, details = TRUE)
+```
+
+
+
+
+
+
+
+
+
+The results from both stepwise regressions match.Both stepwise regressions selected the variables:
+
+> bedrooms
+
+> bathrooms
+
+> neighbourhood_cleansed
+                         
+> month_year
+
+> reviews_per_month 
+
+> host_is_superhost
+
+> host_response_rate
+
+> review_scores_cleanliness
+
+
+for the model. 
+
+
+
+
+
+
+
+
+
+### Intial Linear Model Full Data:
+
+
+
+
+Now that we have the selected variables, we can try running a linear model with all selected variables.
+
+
+```{r}
+#fitting the initial model
+initial_quality_vs_price <- lm(price ~
+                         bedrooms +
+                         bathrooms +
+                         neighbourhood_cleansed +
+                         month_year +
+                         reviews_per_month +
+                         host_is_superhost +
+                         host_response_rate +
+                         review_scores_cleanliness, data = airbnb_data)
+#summary of that model
+summary(initial_quality_vs_price)
+```
+
+
+We can see that the variables:
+
+
+> bedrooms
+
+> bathrooms
+
+> neighbourhood_cleansedChurch-Yonge Corridor
+
+> neighbourhood_cleansedKensington-Chinatown
+
+> month_yearJuly_2020
+
+> reviews_per_month 
+
+
+are all significant at the 0.05 significance level.
+

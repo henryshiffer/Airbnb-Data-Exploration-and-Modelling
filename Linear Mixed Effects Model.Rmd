@@ -1,0 +1,111 @@
+---
+title: "Linear Mixed Effects Model"
+author: "Henry Shiffer"
+output: github_document
+always_allow_html: true
+---
+
+
+```{r message = FALSE}
+library(tidyverse) 
+library(tidymodels) 
+library(ggmap)
+library(varhandle)
+library(caret)
+library(readr)
+library(yardstick)
+library(dplyr)
+library(purrr)
+library(stringr)
+library(olsrr)
+library(lme4)
+```
+
+
+We can first load the full Airbnb dataset that contains the attributes of interest every month from February 2020 to April 2021.
+
+
+```{r message = FALSE, warning = FALSE}
+#loading data
+airbnb_data_full <- read_csv("full_airbnb_data_final.csv", guess_max = 20000)
+airbnb_data_full <- subset(airbnb_data_full, select = c(-X1))
+glimpse(airbnb_data_full)
+```
+
+
+
+We can get rid of the variables in the data set that will not be passed through the model.
+
+```{r}
+#subsetting the data frame for the columns of intrest
+airbnb_data_full <- subset.data.frame(airbnb_data_full, select = c("price", "bedrooms", "bathrooms", "reviews_per_month", "host_is_superhost", "host_response_rate", "review_scores_cleanliness", "host_id", "neighbourhood_cleansed", "month_year"))
+
+#ommiting na cases from the data
+airbnb_data_full_na <- na.omit(airbnb_data_full)
+```
+
+
+
+
+
+
+
+We will explore fitting a linear mixed effects model to the data. We will pick a ;linear mixed effects model because we know that observations are correlated in different cluster levels within the data and ignoring these correlations may present issues. 
+
+The first cluster would be the month and year the listings exist in. All listings within that certain month and year category will be similar in the sense that the were listed on the Airbnb website in that specific month and year. Considering COVID-19 developed over time, along with the measures taken to combat the virus, this listing information is time-sensitive and can vary month to month. Due to fluctuating Ontario lockdown and rental housing measures implemented, Listings within a specific month should be more correlated to other listings in that month than they are to listings in different months.
+
+The second cluster would be neighbourhoods. The neighbourhoods of interest for this study are the neighbourhoods surrounding the University of Toronto. These neighbourhoods being Kensington-Chinatown, Annex, University, Church-Yonge Corridor and Bay Street Corridor. Listings within each neighbourhood are going to be more similar to each-other than they are to lisitings in other neighbourhoods. Part of this is due to Toronto real-estate development and city planning. For example, if an area consists of primarily office buildings, the listings in that area will be more similar to eachother than they would be to an area that consists of primarily single family housing and schools. 
+
+
+The third cluster would be hosts. There is great variation between different hosts that have their listings on Airbnb. Some hosts have multiple listings throughout Toronto, other hosts have only one listing. As there are sometimes multiple observations listed for a single host, the model must account for this correlation within the listings a host has posted and the variation between different hosts on Airbnb. 
+
+
+Taking the structure of the data under consideration, we can define a mixed effects model of Airbnb quality predicting price in R with the variables:
+
+> bedrooms
+
+> bathrooms
+
+> neighbourhood_cleansed
+                         
+> month_year
+
+> reviews_per_month 
+
+> host_is_superhost
+
+> host_response_rate
+
+> review_scores_cleanliness
+
+> host_id
+
+
+
+
+```{r waring = FALSE, message = FALSE}
+pricelmm <- lmer(price ~ bedrooms +
+                   bathrooms +
+                   reviews_per_month +
+                   host_is_superhost +
+                   host_response_rate +
+                   review_scores_cleanliness +
+                   (1|host_id) +
+                   (1|neighbourhood_cleansed) +
+                   (1|month_year), data = airbnb_data_full_na)
+summary(pricelmm)
+```
+
+
+
+
+
+
+```{r}
+confint(pricelmm)
+```
+
+
+
+
+We can see that bedroom and bathroom amounts are significant in predicting price as their confidence intervals do not contain 0. This suggests that when taking into account the variation between months, neighbourhoods and hosts, bedroom and bathroom amount are significant in predicting price. 

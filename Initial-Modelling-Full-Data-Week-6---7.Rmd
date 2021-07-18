@@ -1,0 +1,108 @@
+---
+title: "Initial Modelling Full Data"
+author: "Henry Shiffer"
+output: github_document
+always_allow_html: true
+---
+
+
+Loading all month's data:
+
+
+```{r message = FALSE}
+library(tidyverse) 
+library(tidymodels) 
+library(ggmap)
+library(varhandle)
+library(caret)
+library(readr)
+library(yardstick)
+```
+
+
+```{r}
+#February 2020 
+feb_20_airbnb <- read_csv("AirbnbFebruary2020.csv", guess_max = 20000)
+#March 2020
+mar_20_airbnb <- read_csv("AirbnbMarch2020.csv", guess_max = 20000)
+#April 2020
+apr_20_airbnb <- read_csv("AirbnbApril2020.csv", guess_max = 20000)
+#May 2020
+may_20_airbnb <- read_csv("AirbnbApril2020.csv", guess_max = 20000)
+#June 2020
+jun_20_airbnb <- read_csv("AirbnbJune2020.csv", guess_max = 20000)
+#July 2020
+jul_20_airbnb <- read_csv("AirbnbJuly2020.csv", guess_max = 20000)
+#August 2020
+aug_20_airbnb <- read_csv("AirbnbAugust2020.csv", guess_max = 20000)
+#September 2020
+sept_20_airbnb <- read_csv("AirbnbSeptember2020.csv", guess_max = 20000)
+#October 2020
+oct_20_airbnb <- read_csv("AirbnbOctober2020.csv", guess_max = 20000)
+#November 2020
+nov_20_airbnb <- read_csv("AirbnbNovember2020.csv", guess_max = 20000)
+#December 2020
+dec_20_airbnb <- read_csv("AirbnbDecember2020.csv", guess_max = 20000)
+#January 2021
+jan_21_airbnb <- read_csv("AirbnbJanuary2021.csv", guess_max = 20000)
+#Feb 2021
+feb_21_airbnb <- read_csv("AirbnbFebruary2021.csv", guess_max = 20000)
+#March 2021
+mar_21_airbnb <- read_csv("AirbnbMarch2021.csv", guess_max = 20000)
+#April 2021
+apr_21_airbnb <- read_csv("AirbnbApril2021.csv", guess_max = 20000)
+```
+
+
+
+```{r}
+#adding a month/year variable to each data set
+feb_20_airbnb$month_year = "February_2020"
+mar_20_airbnb$month_year = "March_2020"
+apr_20_airbnb$month_year = "April_2020"
+may_20_airbnb$month_year = "May_2020"
+jun_20_airbnb$month_year = "June_2020"
+jul_20_airbnb$month_year = "July_2020"
+aug_20_airbnb$month_year = "August_2020"
+sept_20_airbnb$month_year = "September_2020"
+oct_20_airbnb$month_year = "October_2020"
+nov_20_airbnb$month_year = "November_2020"
+dec_20_airbnb$month_year = "December_2020"
+jan_21_airbnb$month_year = "January_2021"
+feb_21_airbnb$month_year = "February_2021"
+mar_21_airbnb$month_year = "March_2021"
+apr_21_airbnb$month_year = "April_2021"
+```
+
+Renaming the bathroom column in the Feb 2021 data set to "bathrooms", as the original bathrooms column is corrupted. 
+
+```{r}
+feb_21_airbnb <- subset(feb_21_airbnb, select = -c(bathrooms))
+names(feb_21_airbnb)[names(feb_21_airbnb) == ' bathrooms_text'] <- 'bathrooms'
+```
+
+```{r}
+
+cols_to_keep <- intersect(colnames(feb_20_airbnb),colnames(feb_21_airbnb))
+#cols_to_keep
+```
+
+
+
+
+
+
+
+Using the variables from February 2021 as a reference, we can dro
+
+
+
+
+```{r}
+colnames(feb_20_airbnb)
+colnames(feb_21_airbnb)
+```
+
+
+
+

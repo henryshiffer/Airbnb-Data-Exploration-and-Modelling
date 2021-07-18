@@ -34,6 +34,8 @@ glimpse(airbnb_data_full)
 
 
 
+
+
 We can get rid of the variables in the data set that will not be passed through the model.
 
 ```{r}

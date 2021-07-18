@@ -189,39 +189,41 @@ summary(pricelmm)
     ##     (1 | neighbourhood_cleansed) + (1 | month_year)
     ##    Data: airbnb_data_full_na
     ## 
-    ## REML criterion at convergence: 45842.7
+    ## REML criterion at convergence: 45779.4
     ## 
     ## Scaled residuals: 
     ##     Min      1Q  Median      3Q     Max 
-    ## -3.9665 -0.1363 -0.0444  0.0444 25.1739 
+    ## -3.9997 -0.1316 -0.0496  0.0379 25.3064 
     ## 
     ## Random effects:
-    ##  Groups                 Name        Variance  Std.Dev.
-    ##  host_id                (Intercept)  16369.35 127.943 
-    ##  month_year             (Intercept)  23782.31 154.215 
-    ##  neighbourhood_cleansed (Intercept)     90.47   9.512 
-    ##  Residual                           114665.47 338.623 
+    ##  Groups                 Name        Variance  Std.Dev. 
+    ##  host_id                (Intercept) 1.614e+04 127.02667
+    ##  month_year             (Intercept) 5.766e-04   0.02401
+    ##  neighbourhood_cleansed (Intercept) 1.173e+02  10.82938
+    ##  Residual                           1.142e+05 337.89373
     ## Number of obs: 3141, groups:  
     ## host_id, 1054; month_year, 15; neighbourhood_cleansed, 5
     ## 
     ## Fixed effects:
     ##                           Estimate Std. Error t value
-    ## (Intercept)                54.7506    84.9993   0.644
-    ## bedrooms                   52.4184    11.1869   4.686
-    ## bathrooms                  57.9864    16.6438   3.484
-    ## reviews_per_month          -7.5541     3.9259  -1.924
-    ## host_is_superhostTRUE      -6.5621    16.0278  -0.409
-    ## host_response_rate         -0.5473     0.3888  -1.408
-    ## review_scores_cleanliness   5.5903     7.4901   0.746
+    ## (Intercept)                 8.1185    71.2354   0.114
+    ## bedrooms                   48.1200    11.0851   4.341
+    ## bathrooms                  61.2480    16.5419   3.703
+    ## reviews_per_month          -6.2305     3.8265  -1.628
+    ## host_is_superhostTRUE      -7.6735    15.8622  -0.484
+    ## host_response_rate         -0.2343     0.1545  -1.517
+    ## review_scores_cleanliness   4.2885     7.4365   0.577
     ## 
     ## Correlation of Fixed Effects:
     ##             (Intr) bedrms bthrms rvws__ h__TRU hst_r_
-    ## bedrooms    -0.026                                   
-    ## bathrooms   -0.137 -0.537                            
-    ## rvws_pr_mnt -0.017  0.006  0.009                     
-    ## hst_s_sTRUE  0.175 -0.048  0.047 -0.147              
-    ## hst_rspns_r -0.285 -0.058  0.047 -0.060 -0.112       
-    ## rvw_scrs_cl -0.769  0.014 -0.041 -0.048 -0.248 -0.075
+    ## bedrooms    -0.040                                   
+    ## bathrooms   -0.153 -0.535                            
+    ## rvws_pr_mnt -0.059  0.020  0.004                     
+    ## hst_s_sTRUE  0.179 -0.054  0.050 -0.157              
+    ## hst_rspns_r -0.138 -0.067  0.035  0.103 -0.063       
+    ## rvw_scrs_cl -0.939  0.011 -0.038 -0.058 -0.256 -0.015
+    ## optimizer (nloptwrap) convergence code: 0 (OK)
+    ## boundary (singular) fit: see ?isSingular
 
 ``` r
 confint(pricelmm)
@@ -229,23 +231,18 @@ confint(pricelmm)
 
     ## Computing profile confidence intervals ...
 
-    ## Warning in FUN(X[[i]], ...): non-monotonic profile for .sig02
-
-    ## Warning in confint.thpr(pp, level = level, zeta = zeta): bad spline fit
-    ## for .sig02: falling back to linear interpolation
-
-    ##                                 2.5 %      97.5 %
-    ## .sig01                     112.398217 143.4237339
-    ## .sig02                       0.000000 247.9550450
-    ## .sig03                       0.000000  45.1659901
-    ## .sigma                     329.493385 347.8423101
-    ## (Intercept)               -111.885126 219.8489049
-    ## bedrooms                    30.321704  74.4420410
-    ## bathrooms                   25.292172  90.6731218
-    ## reviews_per_month          -15.326493   0.1226505
-    ## host_is_superhostTRUE      -38.030137  24.8608454
-    ## host_response_rate          -1.300666   0.2220016
-    ## review_scores_cleanliness   -9.116429  20.3902435
+    ##                                  2.5 %       97.5 %
+    ## .sig01                     111.9319327 142.53377222
+    ## .sig02                       0.0000000  30.05488782
+    ## .sig03                       0.0000000  36.77469219
+    ## .sigma                     328.6165619 346.82398883
+    ## (Intercept)               -132.1046602 147.33412615
+    ## bedrooms                    25.9888062  69.95236661
+    ## bathrooms                   28.4181544  93.52743914
+    ## reviews_per_month          -14.0598702   1.11175975
+    ## host_is_superhostTRUE      -38.4907427  23.75766423
+    ## host_response_rate          -0.6512652   0.07085566
+    ## review_scores_cleanliness  -10.0752484  19.21411611
 
 We can see that bedroom and bathroom amounts are significant in
 predicting price as their confidence intervals do not contain 0. This

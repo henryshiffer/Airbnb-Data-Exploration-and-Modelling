@@ -7,7 +7,7 @@ output:
   pdf_document: default
 abstract: This paper explores how the relationship of Airbnb listing price and listing quality has changed over the course of the COVID-19 pandemic. The goal of this paper is to see if there are certain attributes of an Airnb listing's quality that have led to higher prices per night or lower prices per night in the COVID-19 impacted Toronto Airbnb market. This paper also explores how per-night Airbnb listing prices in certain Toronto neighbourhoods have varied throughout the months of Febuary 2020 up to and including April 2021. Model results find that an Airbnb lisiting's bedroom amount and bathroom amount have the strongest positive effect in derterming an Airbnb's nightly price throughout the months of February 2020 - April 2021. Model results also find that time over the course of the COVID-19 pandemic (February 2020 - April 2021) did not provide a significant effect in determining an Airbnb listing's price. This paper concludes that higher prices were associated with attributes that represent a listing of higher quality. However, it was seen that if a host is a Superhost and the amount of reviews a listing has per month lead to slightly lower prices per night. This can likely be attributed to a host understanding the market that surrounds their listing, and even if the listing is of high quality, the host makes the listing affordable to attract business.
 
-thanks: 'Code and data are available at: LINK.'
+thanks: 'Code and data are available at: https://github.com/henryshiffer/Airbnb-Data-Exploration-and-Modelling'
 toc: no
 ---
 
@@ -600,20 +600,20 @@ Where:
 | host_is_superhostTRUE       | -6.60     | 15.9865         | -0.413  | (-37.93, 24.74)  | 0.680   |
 | host_response_rate          | -0.66     | 0.4065          | -1.612  | (-1.45, 0.14)    | 0.107   |
 | review_scores_cleanliness   | 5.24      | 7.4710          | 0.701   | (-9.41, 19.88)   | 0.483   |
-| month_year [April_2021]     | -16.24    | 34.9639         | -0.464  | -84.77 – 52.29   | 0.642   |
-| month_year [August_2020]    | -5.75     | 33.2231         | -0.173  | -70.86 – 59.37   | 0.863   |
-| month_year [December_2020]  | -32.61    | 33.9291         | -0.961  | -99.11 – 33.89   | 0.336   |
-| month_year [February_2020]  | -34.49    | 47.1185         | -0.732  | -126.84 – 57.86  | 0.464   |
-| month_year [February_2021]  | -34.39    | 35.3697         | -0.972  | -103.71 – 34.94  | 0.331   |
-| month_year [January_2021]   | -49.17    | 34.7210         | -1.416  | -117.22 – 18.88  | 0.157   |
-| month_year [July_2020]      | -20.49    | 108.7913        | -0.188  | -233.71 – 192.74 | 0.851   |
-| month_year [June_2020]      | 36.45     | 29.6054         | 1.231   | -21.58 – 94.47   | 0.218   |
-| month_year [March_2020]     | -58.54    | 47.1834         | -1.241  | -151.02 – 33.94  | 0.215   |
-| month_year [March_2021]     | -46.06    | 37.1784         | -1.239  | -118.93 – 26.81  | 0.215   |
-| month_year [May_2020]       | 33.82     | 27.2523         | 1.241   | -19.60 – 87.23   | 0.215   |
-| month_year [November_2020]  | -20.05    | 32.5108         | -0.617  | -83.77 – 43.67   | 0.537   |
-| month_year [October_2020]   | -30.38    | 33.2309         | -0.914  | -95.51 – 34.75   | 0.361   |
-| month_year [September_2020] | 1.71      | 31.5745         | 0.054   | -60.17 – 63.60   | 0.957   |
+| month_year [April_2021]     | -16.24    | 34.9639         | -0.464  | (-84.77, 52.29)   | 0.642   |
+| month_year [August_2020]    | -5.75     | 33.2231         | -0.173  | (-70.86, 59.37)   | 0.863   |
+| month_year [December_2020]  | -32.61    | 33.9291         | -0.961  | (-99.11, 33.89)   | 0.336   |
+| month_year [February_2020]  | -34.49    | 47.1185         | -0.732  | (-126.84, 57.86)  | 0.464   |
+| month_year [February_2021]  | -34.39    | 35.3697         | -0.972  | (-103.71, 34.94)  | 0.331   |
+| month_year [January_2021]   | -49.17    | 34.7210         | -1.416  | (-117.22, 18.88)  | 0.157   |
+| month_year [July_2020]      | -20.49    | 108.7913        | -0.188  | (-233.71, 192.74) | 0.851   |
+| month_year [June_2020]      | 36.45     | 29.6054         | 1.231   | (-21.58, 94.47)   | 0.218   |
+| month_year [March_2020]     | -58.54    | 47.1834         | -1.241  | (-151.02, 33.94)  | 0.215   |
+| month_year [March_2021]     | -46.06    | 37.1784         | -1.239  | (-118.93, 26.81)  | 0.215   |
+| month_year [May_2020]       | 33.82     | 27.2523         | 1.241   | (-19.60, 87.23)   | 0.215   |
+| month_year [November_2020]  | -20.05    | 32.5108         | -0.617  | (-83.77, 43.67)   | 0.537   |
+| month_year [October_2020]   | -30.38    | 33.2309         | -0.914  | (-95.51, 34.75)   | 0.361   |
+| month_year [September_2020] | 1.71      | 31.5745         | 0.054   | (-60.17, 63.60)   | 0.957   |
 
 
 
@@ -654,7 +654,7 @@ airbnb_data_full_na <- na.omit(airbnb_data_full)
 Reading the model results, it can be shown that there are 3141 observations passed through the model, with 1054 groups for the host random effect and 5 groups for the neighbourhood random effect. There is much higher variation between hosts than there is between neighbourhoods. This can by the variation of 16200.78 for the host random effect, when compared to the variance of 86.81 for the neighbourhood random effect.
 
 
-The model results show that of the variables selected to measure Airbnb quality, bedroom and bathroom amounts were statistically significant at the 5% significance level in predicting price. Bedrooms is the most statistically significant variable with t-value 4.615. The bedrooms variable has $\beta$ =  51.47 with 95% CI (29.25, 72.80) and p-value 4.18e-06. The bathrooms variable is the second most statistically significant variable in the model with t-value of 3.492. Bathrooms has $\beta$ = 57.94 with 95% CI (25.41, 90.25) and p-value 0.000491. The model results also show that out of all the other variables, reviews per month is the third most relevant variable in the model for the prediction of price with a t-value of -1.889. Reviews per month has $\beta$ = -7.40 with 95% CI (-15.20, 0.103) and p-value 0.059025. While reviews per month is not significant on the 5% significant level, reviews per month is significant on the 10% significant level. 
+The model results show that of the variables selected to measure Airbnb quality, bedroom and bathroom amounts were statistically significant at the 5% significance level in predicting price. Bedrooms is the most statistically significant variable with t-value 4.615. The bedrooms variable has $\beta$ =  51.47 with 95% CI (29.61, 73.33) and p-value 4.18e-06. The bathrooms variable is the second most statistically significant variable in the model with t-value of 3.492. Bathrooms has $\beta$ = 57.94 with 95% CI (25.42, 90.46) and p-value 0.000491. The model results also show that out of all the other variables, reviews per month is the third most relevant variable in the model for the prediction of price with a t-value of -1.889. Reviews per month has $\beta$ = -7.40 with 95% CI (-15.08, 0.28) and p-value 0.059025. While reviews per month is not significant on the 5% significant level, reviews per month is significant on the 10% significant level. 
 
 Based on how the variables currently enter the model, it does not appear that if a host is a superhost, a host’s response rate, and the listing’s review scores for cleanliness have an effect on an Airbnb listing’s price. All three of these variables have p-values that are higher than the 5% significance level. However, out of these three variables, host response rate has the highest t-value of -1.612. Further, it can be shown that by the way that they currently enter the model, there does not appear to be much of an effect from the different months as each month and year is statistically insignificant at the 5% significance level. Future work could examine this in more detail to further explore the effect of seasonality in Airbnb prices.
 

@@ -1,0 +1,831 @@
+---
+title: 'Exploring Airbnb Price Throughout COVID-19'
+author: "Henry Shiffer"
+date: "`r format(Sys.time(), '%d %B %Y')`"
+output:
+  bookdown::pdf_document2: default
+  pdf_document: default
+abstract: This paper explores how the relationship of Airbnb listing price and listing quality has changed over the course of the COVID-19 pandemic. The goal of this paper is to see if there are certain attributes of an Airnb listing's quality that have led to higher prices per night or lower prices per night in the COVID-19 impacted Toronto Airbnb market. This paper also explores how per-night Airbnb listing prices in certain Toronto neighbourhoods have varied throughout the months of Febuary 2020 up to and including April 2021. Model results find that an Airbnb lisiting's bedroom amount and bathroom amount have the strongest positive effect in derterming an Airbnb's nightly price throughout the months of February 2020 - April 2021. Model results also find that time over the course of the COVID-19 pandemic (February 2020 - April 2021) did not provide a significant effect in determining an Airbnb listing's price. This paper concludes that higher prices were associated with attributes that represent a listing of higher quality. However, it was seen that if a host is a Superhost and the amount of reviews a listing has per month lead to slightly lower prices per night. This can likely be attributed to a host understanding the market that surrounds their listing, and even if the listing is of high quality, the host makes the listing affordable to attract business.
+
+thanks: 'Code and data are available at: LINK.'
+toc: no
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(sf)
+library(tidyverse) 
+library(tidymodels) 
+library(ggmap)
+library(modelsummary)
+library(lme4)
+library(ggpubr)
+library(sjPlot)
+library(olsrr)
+library(lattice)
+```
+
+# Introduction
+
+
+The COVID-19 pandemic and resulting stay-at-home orders and social distancing measures increased the importance of housing and personal space, while simultaneously changing the social fabric of society. While all employment and economic sectors were forced into some change, the small business economy and the tourism industry saw very dramatic changes happening quickly. Since the start of the COVID-19 outbreak, 70% of Canadian small businesses had seen a drop in revenues by 30% or more, and it is anticipated there will be a slower recovery for small businesses once the pandemic is over (Mo et al., 2020). For tourism, the restrictions on travel in Canada have led international arrivals in Canada to fall 54.2% in March 2020 when compared to February 2020 (Liu, 2020), and hotel occupancy rates were below 20% by the beginning of April 2020 (Liu, 2020).
+
+With the fluctuating COVID-19 restrictions on travel, and with the risks that travelling during COVID-19 impose, it is no question that Airbnb whose market relies heavily on tourism has taken a significant hit during the COVID-19 pandemic. Local Lockdowns resulted in a 57.8% fall in global Airbnb booking activities (Hu & Lee, 2020). According to CNBC in May 2020, Airbnb had laid off a quarter of its workforce (Bosa & Rodriguez, 2020) and with no end to the pandemic in sight, there is no way to predict if the organization will ever recover it’s pre-pandemic success. This loss, while significant to the Airbnb organization, can be felt much further down by Airbnb hosts. Many hosts, whose primary income comes from rental of the units they provide, are stuck with bills and mortgages to pay, sometimes for many units.
+
+In March 2020, Ontario Premier Doug Ford declared a provincial state of emergency which prompted the closing of many non-essential businesses and facilities across Ontario. In late July 2020, Toronto and Peel region were allowed to enter stage 3 of the Ontario reopening plan. In October 2020, Peel region, Toronto and Ottawa were rolled back to modified stage 2 for 28 days. In November 2020, Doug Ford announced that the province would move towards a 5-tier system to determine restrictions. Mid-November Toronto was announced to move into the Red Tier “Control” to provide more restrictions, and finally on November 20th, Ford announced Toronto and Peel region would be moved into Lockdown effective November 23rd. This prompted all non-essential businesses to be closed along with all dine-in restaurants, gyms, and personal care services. In January 2021, Doug Ford declared a second declaration of emergency, and stay-at-home orders were declared for the province. In March 2021, Toronto and Peel region were able to exit stay-at-home orders and Toronto and Peel region entered Grey Tier “Lockdown”. In April 2021, Ford announced the province would move into White Tier “Shutdown”, which would impose the same measures put in place during the original province wide shutdown in March 2020.
+
+Ontario and the city of Toronto have placed an increased control on the Airbnb and short-term rental market during the COVID-19 outbreak. In April 2020, Ontario had banned all short term rentals (a rental period of less than 28 days) unless the unit is being rented to someone in need of housing during the “Emergency Order” (Eisenberg & Shrives, 2020). In September 2020, Toronto laid out a series of short term rental reforms. These reforms require short-term rental operators to need to register with the city in order to allow short-term tenants (Stevens, 2020). The reforms also state that these landlords may only be allowed to rent out their primary residence for up to 180 nights per year.
+
+Using Toronto Airbnb data from February 2020 to April 2021, this paper will explore how price has varied with relation to an Airbnb listing’s quality over the course of the pandemic. This paper will primarily focus on Airbnb listings around the University of Toronto. These neighbourhoods being: Kensington-Chinatown, Annex, University, Church-Yonge Corridor, and Bay Street Corridor. This paper defines a criteria to measure an Airbnb listing’s quality, and models to represent this criteria.
+
+
+
+
+
+
+
+# Data
+
+
+## Source of data
+
+
+The website [Inside Airbnb](http://insideairbnb.com/get-the-data.html) provides scraped listing data from the Airbnb website for major cities around the world. For each month since December 2015, the Airbnb website listings are scraped for each major city and are posted in a .csv file that pertains to that particular month and year. The Inside Airbnb Project was put together by Murray Cox and John Morris. For this analysis, listing data .csv files from Toronto were downloaded from this site.
+
+## Months of interest
+
+This paper is interested in the months surrounding the initial COVID-19 lockdowns up to the current COVID-19 situation in Toronto. The data was selected from the months February 2020 up to and including April 2021. These particular months were selected as this will allow a view of how COVID-19’s progression and remission trends so far have impacted Toronto’s Airbnb listings.
+
+## Initial data analysis
+
+A data set with all months of interest is very large. To understand the data better, it will make sense to first pick a single month to examine more closely before there is analysis on the full data. The month February 2021 was selected for initial analysis.
+
+### Airbnb price
+
+
+We can plot the Airbnb price per night on the X-axis with the number of properties having that price per night on the Y-axis.
+
+```{r message = FALSE, warning = FALSE, echo = FALSE, fig.width=3.5, fig.height=3.5, fig.align = "center"}
+feb_21_airbnb <- read_csv("AirbnbFebruary2021.csv", guess_max = 20000)
+feb_21_airbnb <- feb_21_airbnb %>% 
+  mutate(price = str_remove(price, "\\$"),
+         price = str_remove(price, ","),
+         price = as.integer(price)
+         )
+feb_21_airbnb %>%
+  ggplot(aes(x = price)) +
+  geom_histogram(binwidth = 20, color = "blue", fill = "white") +
+  geom_density() +
+  theme_classic() +
+  labs(x = "Price per night",
+       y = "Amount of properties")
+```
+
+
+
+It can be observed that the distribution of prices is strongly right skewed. We can examine if this skew still exists zooming in closer at the prices per night.
+
+
+
+We can now plot a histogram of prices per night greater than $500.
+
+```{r message = FALSE, warning = FALSE, echo = FALSE, fig.width=3.5, fig.height=3.5, fig.align = "center"}
+feb_21_airbnb %>%
+  filter(price > 500) %>% 
+  ggplot(aes(x = price)) +
+  geom_histogram(binwidth = 10, color = "blue") +
+  theme_classic() +
+  labs(x = "Price per night greater than $500",
+       y = "Amount of properties")
+```
+
+
+The right skew still exists when examining price per night greater than $500. As we have a much better view of the outliers, we can see that there exists properties that are greater than $10,000 a night.
+
+
+
+
+
+We can can get a better view of these higher end prices by examining the amount of properties greater than $10,000 a night. 
+
+```{r message = FALSE, warning = FALSE, echo = FALSE, fig.width=3.5, fig.height=3.5, fig.align = "center"}
+feb_21_airbnb %>%
+  filter(price > 10000) %>% 
+  ggplot(aes(x = price)) +
+  geom_histogram(binwidth = 10, color = "blue") +
+  theme_classic() +
+  labs(x = "Price per night greater than $10,000",
+       y = "Amount of properties")
+```
+
+
+
+
+
+It appears that the highest price in February 2021 is $13,000 a night, and there are three properties that have this price.
+
+
+
+
+
+
+To see how prices in February 2021 compare to the pre-pandemic months of February 2019 and February 2020, we can plot these prices on a map of Toronto. We will use a log scale of the prices as it will be easier to see the difference between low, medium, and high prices.
+
+
+```{r message = FALSE, warning = FALSE, echo = FALSE, fig.width=8, fig.height=4, fig.align = "center"}
+feb21_map_borders <- c(bottom  = min(feb_21_airbnb$latitude), 
+                top = max(feb_21_airbnb$latitude),
+                left = min(feb_21_airbnb$longitude),
+                right = max(feb_21_airbnb$longitude))
+map1 <- get_stamenmap(feb21_map_borders, maptype = "toner-lite")
+ggmap(map1) + geom_point(data = feb_21_airbnb, mapping = aes(x = longitude, y = latitude, 
+                                               col = log(price))) + scale_colour_distiller(palette = "RdYlBu") + ggtitle("February 2021 Prices") +  theme(axis.text.y=element_blank(), axis.title.y=element_blank(), axis.ticks.y=element_blank()) + theme(axis.text.x=element_blank(), axis.title.x=element_blank(), axis.ticks.x=element_blank()) + theme(plot.title = element_text(hjust = 0.5))
+feb_19_airbnb <- read_csv("AirbnbFebruary2019.csv", guess_max = 20000)
+feb_20_airbnb <- read_csv("AirbnbFebruary2020.csv", guess_max = 20000)
+feb_19_airbnb <- feb_19_airbnb %>% 
+  mutate(price = str_remove(price, "\\$"),
+         price = str_remove(price, ","),
+         price = as.integer(price)
+         )
+
+feb_20_airbnb <- feb_20_airbnb %>% 
+  mutate(price = str_remove(price, "\\$"),
+         price = str_remove(price, ","),
+         price = as.integer(price)
+         )
+feb20_map_borders <- c(bottom  = min(feb_20_airbnb$latitude), 
+                top = max(feb_20_airbnb$latitude),
+                left = min(feb_20_airbnb$longitude),
+                right = max(feb_20_airbnb$longitude))
+map2 <- get_stamenmap(feb20_map_borders, maptype = "toner-lite")
+ggmap(map2) + geom_point(data = feb_20_airbnb, mapping = aes(x = longitude, y = latitude, 
+                                               col = log(price))) + scale_colour_distiller(palette = "RdYlBu") + ggtitle("February 2020 Prices") +  theme(axis.text.y=element_blank(), axis.title.y=element_blank(), axis.ticks.y=element_blank()) + theme(axis.text.x=element_blank(), axis.title.x=element_blank(), axis.ticks.x=element_blank()) + theme(plot.title = element_text(hjust = 0.5))
+                                                                                                                                                                                                                                                           
+feb19_map_borders <- c(bottom  = min(feb_19_airbnb$latitude), 
+                top= max(feb_19_airbnb$latitude),
+                left = min(feb_19_airbnb$longitude),
+                right = max(feb_19_airbnb$longitude))
+map3 <- get_stamenmap(feb19_map_borders, maptype = "toner-lite")
+ggmap(map3) + geom_point(data = feb_19_airbnb, mapping = aes(x = longitude, y = latitude, 
+                                               col = log(price))) + scale_colour_distiller(palette = "RdYlBu") + ggtitle("February 2019 Prices") +  theme(axis.text.y=element_blank(), axis.title.y=element_blank(), axis.ticks.y=element_blank()) + theme(axis.text.x=element_blank(), axis.title.x=element_blank(), axis.ticks.x=element_blank()) + theme(plot.title = element_text(hjust = 0.5))
+                                                                                                                                                                                                         
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+### Aribnb quality
+
+
+
+#### Defining quality
+
+
+
+This paper would like to examine the relationship between Airbnb price and Airbnb quality. However, Airbnb quality is subjective, and a formal definition of listing quality must be defined for quality to be measured. Listing quality is defined by this project as bedroom and bathroom amount, the rating from review scores, the neighbourhood the property is in, and if a host is a Superhost or not. This paper hypothesizes that listings that have a higher quality, will have a higher nightly price as a result. 
+
+
+Based on this definition:
+
+- An Airbnb listing with a low amount of bedrooms would have lower quality than a listing with a high amount of bedrooms. 
+
+- An Airbnb listing with a low amount of bathrooms would have a lower quality than a listing with a high amount of bathrooms.
+
+- An Airbnb lising with low review scores would have a lower quality than a listing with high review scores.
+
+
+
+
+According to Airbnb's website, a Superhost is a "experienced host who provides a shining example for other hosts, and extraordinary experiences for their guests" (Airbnb, 2021). Airbnb also states that a Superhost's activity is checked four times a year, to ensure that "the program highlights the people who are most dedicated to providing outstanding hospitality" (Airbnb, 2021). According to Airbnb's description, it is reasonable to believe that a listing that is ran by a Superhost would be of a higher quality than a listing ran by a host who is not a Superhost. 
+
+
+From here we can select variables that measure these attributes and examine their relationship with price, and the trends that exist within them.
+
+
+
+**Superhost spatial view**
+
+From the Airbnb website, a Superhost is defined as a host who has met all of the following requirements:
+
+“Completed at least 10 trips OR completed 3 reservations that total at least 100 nights”
+“Maintained a 90% response rate or higher”
+“Maintained a 1% percent cancellation rate (1 cancellation per 100 reservations)”
+“Maintained a 4.8 overall rating (this rating looks at the past 365 days of reviews, based on the date the guest left a review, not the date the guest checked out)”
+
+
+If a listing is ran by a host that is a Superhost, the listing has a better chance of being better maintained and of higher quality to stay in.
+
+
+```{r message = FALSE, warning = FALSE, echo = FALSE, fig.width=8, fig.height=4, fig.align = "center"}
+#getting rid of NA values for host_is_superhost in the original data-set
+super_filtered_airbnb <- feb_21_airbnb %>%
+  filter(!is.na(host_is_superhost))
+
+#mapping the NA value filtered host_is_superhost values
+super_filtered_borders <- c(bottom  = min(super_filtered_airbnb$latitude), 
+                top = max(super_filtered_airbnb$latitude),
+                left = min(super_filtered_airbnb$longitude),
+                right = max(super_filtered_airbnb$longitude))
+map2 <- get_stamenmap(super_filtered_borders, maptype = "toner-lite")
+ggmap(map2) + geom_point(data = super_filtered_airbnb, mapping = aes(x = longitude, y = latitude, 
+                                               col = host_is_superhost)) + 
+  geom_jitter(alpha = 0.4) + ggtitle("February 2021 Superhosts") +  theme(axis.text.y=element_blank(), axis.title.y=element_blank(), axis.ticks.y=element_blank()) + theme(axis.text.x=element_blank(), axis.title.x=element_blank(), axis.ticks.x=element_blank())+ labs(color = 'Host is Superhost') + theme(plot.title = element_text(hjust = 0.5))
+
+```
+
+
+We can see that there does exists a good amount of Superhost listings in February 2021, but ultimately it looks like there is more hosts that do not have Superhost status.
+
+
+
+**Bedroom amount spatial view**
+
+
+Bedroom amounts can indicate how much space a property has, as well as how many people can comfortably live there.
+
+
+```{r message = FALSE, warning = FALSE, echo = FALSE, fig.width=8, fig.height=4, fig.align = "center"}
+#getting rid of NA values for host_is_superhost in the original data-set
+bedrooms_filtered_airbnb <- feb_21_airbnb %>%
+  filter(!is.na(bedrooms))
+
+#mapping the NA value filtered host_is_superhost values
+bedrooms_filtered_borders <- c(bottom  = min(bedrooms_filtered_airbnb$latitude), 
+                top = max(bedrooms_filtered_airbnb$latitude),
+                left = min(bedrooms_filtered_airbnb$longitude),
+                right = max(bedrooms_filtered_airbnb$longitude))
+map3 <- get_stamenmap(bedrooms_filtered_borders, maptype = "toner-lite")
+ggmap(map3) + geom_point(data = bedrooms_filtered_airbnb, mapping = aes(x = longitude, y = latitude, 
+                                               col = bedrooms)) +
+  scale_colour_distiller(palette = "RdYlBu") +
+  geom_jitter(alpha = 0.4) + ggtitle("February 2021 Bedrooms") +  theme(axis.text.y=element_blank(), axis.title.y=element_blank(), axis.ticks.y=element_blank()) + theme(axis.text.x=element_blank(), axis.title.x=element_blank(), axis.ticks.x=element_blank())+ labs(color = 'Bedroom Amount') + theme(plot.title = element_text(hjust = 0.5))
+
+```
+
+
+We can see an overwhelming number of listings have less than ~5 bedrooms. A high amount of bedrooms is difficult to find in Toronto's housing market, and these listings reflect that. 
+
+
+
+**Cleanliness score spatial view**
+
+Regardless of the pandemic, cleanliness is a good indicator of Airbnb listing quality. If a listing has received low review scores for cleanliness, it is unlikely anyone will feel comfortable living in that property.
+
+
+```{r message = FALSE, warning = FALSE, echo = FALSE, fig.width=8, fig.height=4, fig.align = "center"}
+#getting rid of NA values for review_scores_cleanliness in the original data-set
+clean_filtered_airbnb <- feb_21_airbnb %>%
+  filter(!is.na(review_scores_cleanliness))
+
+#mapping the NA value filtered out review_scores_cleanliness values
+clean_filtered_borders <- c(bottom  = min(clean_filtered_airbnb$latitude), 
+                top = max(clean_filtered_airbnb$latitude),
+                left = min(clean_filtered_airbnb$longitude),
+                right = max(clean_filtered_airbnb$longitude))
+map4 <- get_stamenmap(clean_filtered_borders, maptype = "toner-lite")
+ggmap(map4) + geom_point(data = clean_filtered_airbnb, mapping = aes(x = longitude, y = latitude, 
+                                               col = review_scores_cleanliness)) +
+  scale_colour_distiller(palette = "RdYlBu") +
+  geom_jitter(alpha = 0.4) + ggtitle("February 2021 Cleanliness Ratings") +  theme(axis.text.y=element_blank(), axis.title.y=element_blank(), axis.ticks.y=element_blank()) + theme(axis.text.x=element_blank(), axis.title.x=element_blank(), axis.ticks.x=element_blank())+ labs(color = 'Cleanliness Ratings') + theme(plot.title = element_text(hjust = 0.5))
+
+```
+
+
+We can see there is definitely many listings that have review scores for cleanliness that are 6 and below. These listings are likely not very well maintained and are possibly used just as a short-term rental property without a host living there.
+
+
+
+
+
+**Listing review score spatial view**
+
+
+A listing's review score indicates how comfortable that listing's experience was for a guest.
+
+```{r message = FALSE, warning = FALSE, echo = FALSE, fig.width=8, fig.height=4, fig.align = "center"}
+#getting rid of NA values for review_scores_rating in the original data-set
+rsr_filtered_airbnb <- feb_21_airbnb %>%
+  filter(!is.na(review_scores_rating))
+
+#mapping the NA value filtered review_scores_ratings values
+rsr_filtered_borders <- c(bottom  = min(rsr_filtered_airbnb$latitude), 
+                top = max(rsr_filtered_airbnb$latitude),
+                left = min(rsr_filtered_airbnb$longitude),
+                right = max(rsr_filtered_airbnb$longitude))
+map1 <- get_stamenmap(rsr_filtered_borders, maptype = "toner-lite") 
+ggmap(map1) + geom_point(data = rsr_filtered_airbnb, mapping = aes(x = longitude, y = latitude, 
+                                               col = review_scores_rating)) + scale_colour_distiller(palette = "RdYlBu") + ggtitle("February 2021 Review Scores") +  theme(axis.text.y=element_blank(), axis.title.y=element_blank(), axis.ticks.y=element_blank()) + theme(axis.text.x=element_blank(), axis.title.x=element_blank(), axis.ticks.x=element_blank()) + guides(fill=guide_legend(title="Listing review score rating")) + labs(color = 'Listing review score rating') + theme(plot.title = element_text(hjust = 0.5))
+                                                                        
+```
+
+
+We can see that review scores appear to be on par with cleanliness ratings. This makes sense as a low cleanliness score would likely be associated with an overall negative stay. 
+
+
+
+## Seconday data analysis
+
+
+This section of the paper is focused on the full data set of the months February 2020 - April 2021. To slim the data set down and narrow focus for the paper, the neighbourhoods of interest were chosen to be neighbourhoods around the University of Toronto. The neighbourhoods selected for analysis are Kensington-Chinatown, Annex, University, Church-Yonge Corridor, and Bay Street Corridor.
+
+
+
+
+
+
+
+
+
+
+```{r message = FALSE, warning = FALSE, echo=FALSE}
+#loading data
+airbnb_data_full <- read_csv("full_airbnb_data_final.csv", guess_max = 20000)
+airbnb_data_full <- subset(airbnb_data_full, select = c(-X1))
+#glimpse(airbnb_data_full)
+```
+
+
+
+### Views of price:
+
+
+
+
+
+```{r  message = FALSE, warning = FALSE, echo = FALSE, fig.width=8, fig.height=4, fig.align = "center"}
+agg_data <- aggregate(airbnb_data_full$price,by=list(airbnb_data_full$month_year, airbnb_data_full$neighbourhood_cleansed), FUN=mean, na.rm = TRUE)
+agg_data$Group.1 <- factor(agg_data$Group.1, c("February_2020", "March_2020", "April_2020", "May_2020", "June_2020", "July_2020", "August_2020", "September_2020", "October_2020", "November_2020", "December_2020", "January_2021", "February_2021", "March_2021","April_2021"))
+ggplot(data = agg_data, aes(x, Group.1)) + geom_point(aes(colour = factor(Group.2)), size = 3)  + theme_classic() + xlab("Average price per night") + ylab("") +  scale_colour_discrete("Neighbourhoods") + ggtitle("Average price variation across neighbourhoods")
+```
+
+It appears Annex average prices varied greatly between each month, with fluctuations between less than $200 a night and greater than $300 a night. Bay Street Corridor prices appear to increase in the spring and summer months but stay relatively flat across the fall and winter. Church-Yonge prices appear to have an initial dip around March and April 2020, with a large increase in May and June 2020, before falling relatively flat across remaining months. Kensington-Chinatown prices appear to dip in March 2020, and fluctuate around $150 a night and below. University prices appear to dip in the summer months and the mid winter months. 
+
+
+
+
+```{r message=FALSE, warning = FALSE, fig.width=8, fig.height=4, fig.align = "center", echo = FALSE}
+agg_data <- aggregate(airbnb_data_full$price,by=list(airbnb_data_full$host_id, airbnb_data_full$host_is_superhost), FUN=mean, na.rm = TRUE)
+# agg_data$Group.1 <- factor(agg_data$Group.1, c("February_2020", "March_2020", "April_2020", "May_2020", "June_2020", "July_2020", "August_2020", "September_2020", "October_2020", "November_2020", "December_2020", "January_2021", "February_2021", "March_2021","April_2021"))
+# ggplot(data=agg_data, aes(x=Group.1, y=x)) +
+#   geom_bar(stat="identity", width=0.01)
+agg_data <- na.omit(agg_data)
+agg_data$Group.1 <- as.factor(agg_data$Group.1)
+agg_data$Group.2 <- as.factor(agg_data$Group.2)
+
+#reorder(Group.1, x)
+plot1 <- ggplot(data=agg_data, aes(x=reorder(Group.1, x), y=x, fill = Group.2)) + geom_bar(stat="identity", width=0.50) + theme(axis.text.y=element_blank(), axis.ticks.y=element_blank()) + coord_flip() + ylim(0, 5000) + xlab("Hosts") + ylab("Host's average price \n per night under $5000") + guides(fill=guide_legend(title="Host is Superhost"))
+
+
+plot2 <- ggplot(data=agg_data, aes(x=reorder(Group.1, x), y=x, fill = Group.2)) + geom_bar(stat="identity", width=0.50) + theme(axis.text.y=element_blank(), axis.ticks.y=element_blank()) + coord_flip() + ylim(0, 2500) + xlab("Hosts") + ylab("Host's average price \n per night under $2500") + guides(fill=guide_legend(title="Host is Superhost"))
+
+
+plot3 <- ggplot(data=agg_data, aes(x=reorder(Group.1, x), y=x, fill = Group.2)) + geom_bar(stat="identity", width=0.50) + theme(axis.text.y=element_blank(), axis.ticks.y=element_blank()) + coord_flip() + ylim(0, 1000) + xlab("Hosts") + ylab("Host's average price \n per night under $1000") + guides(fill=guide_legend(title="Host is Superhost"))
+
+
+plot4 <- ggplot(data=agg_data, aes(x=reorder(Group.1, x), y=x, fill = Group.2)) + geom_bar(stat="identity", width=0.50) + theme(axis.text.y=element_blank(), axis.ticks.y=element_blank()) + coord_flip() + ylim(0, 500) + xlab("Hosts") + ylab("Host's average price \n per night under $500") + guides(fill=guide_legend(title="Host is Superhost"))
+plots <- ggarrange(plot1, plot2, plot3, plot4)
+annotate_figure(plots, top = text_grob("Average nightly price variation among Airbnb Superhosts vs Non-Superhosts",
+               color = "black", size = 14))
+# ggplot(data = agg_data, aes(x, Group.1)) + geom_line(data = agg_data, aes(x=x, y=Group.1), group alpha = 0.4) 
+```
+
+
+There appears to be average price variation between hosts whether the host is a Superhost or not a Superhost. It appears that many of the hosts that have extremely high prices and extremely low prices are not Superhosts. This variation between host prices is likely as a result of the different property types that are listed under each host as well as the different areas the listings are in.
+
+
+
+
+
+```{r message=FALSE, warning = FALSE, echo = FALSE, fig.show="hold", out.width="50%"}
+airbnb_price_under_5000 <- subset(airbnb_data_full, price < 5000)
+under_5000_plot <- ggplot(airbnb_price_under_5000, aes(x=neighbourhood_cleansed, y=price, fill=neighbourhood_cleansed)) + guides(fill=guide_legend(title="Neighbourhoods")) + geom_boxplot() + coord_flip() + xlab("") +ylab("Prices under $5000") +  theme_classic()
+
+airbnb_price_under_2500 <- subset.data.frame(airbnb_data_full, price < 2500)
+under_2500_plot <- ggplot(airbnb_price_under_2500, aes(x=neighbourhood_cleansed, y=price, fill=neighbourhood_cleansed)) + guides(fill=guide_legend(title="Neighbourhoods")) + geom_boxplot() + coord_flip() + xlab("") +ylab("Prices under $2500") +  theme_classic()
+
+airbnb_price_under_1000 <- subset.data.frame(airbnb_data_full, price < 1000)
+under_1000_plot <- ggplot(airbnb_price_under_1000, aes(x=neighbourhood_cleansed, y=price, fill=neighbourhood_cleansed)) + guides(fill=guide_legend(title="Neighbourhoods")) + geom_boxplot() + coord_flip() + xlab("") +ylab("Prices under $1000") +  theme_classic()
+
+airbnb_price_under_500 <- subset.data.frame(airbnb_data_full, price < 500)
+under_500_plot <- ggplot(airbnb_price_under_500, aes(x=neighbourhood_cleansed, y=price, fill=neighbourhood_cleansed)) + guides(fill=guide_legend(title="Neighbourhoods")) + geom_boxplot() + coord_flip() + xlab("") +ylab("Prices under $500") +  theme_classic()
+under_5000_plot
+under_2500_plot
+under_1000_plot
+under_500_plot
+```
+
+
+
+It can be further seen from the above boxplots of each neighbourhood that prices vary between neighbourhood. It appears Bay Street Corridor has higher prices compared to the other neighbourhoods, while Kensington-Chinatown has lower prices.
+
+
+
+
+
+
+```{r message=FALSE, warning = FALSE, echo = FALSE, fig.show="hold", out.width="50%"}
+airbnb_price_under_5000 <- subset(airbnb_data_full, price < 5000)
+airbnb_price_under_5000$month_year <- factor(airbnb_price_under_5000$month_year, c("February_2020", "March_2020", "April_2020", "May_2020", "June_2020", "July_2020", "August_2020", "September_2020", "October_2020", "November_2020", "December_2020", "January_2021", "February_2021", "March_2021","April_2021"))
+m_under_5000_plot <- ggplot(airbnb_price_under_5000, aes(x=month_year, y=price, fill=month_year)) + guides(fill=guide_legend(title="Month & Years")) + geom_boxplot() + coord_flip() + xlab("") +ylab("Prices under $5000") +  theme_classic()
+
+airbnb_price_under_2500 <- subset.data.frame(airbnb_data_full, price < 2500)
+airbnb_price_under_2500$month_year <- factor(airbnb_price_under_2500$month_year, c("February_2020", "March_2020", "April_2020", "May_2020", "June_2020", "July_2020", "August_2020", "September_2020", "October_2020", "November_2020", "December_2020", "January_2021", "February_2021", "March_2021","April_2021"))
+m_under_2500_plot <- ggplot(airbnb_price_under_2500, aes(x=month_year, y=price, fill=month_year)) + guides(fill=guide_legend(title="Month & Years")) + geom_boxplot() + coord_flip() + xlab("") +ylab("Prices under $2500") +  theme_classic()
+
+airbnb_price_under_1000 <- subset.data.frame(airbnb_data_full, price < 1000)
+airbnb_price_under_1000$month_year <- factor(airbnb_price_under_1000$month_year, c("February_2020", "March_2020", "April_2020", "May_2020", "June_2020", "July_2020", "August_2020", "September_2020", "October_2020", "November_2020", "December_2020", "January_2021", "February_2021", "March_2021","April_2021"))
+m_under_1000_plot <- ggplot(airbnb_price_under_1000, aes(x=month_year, y=price, fill=month_year)) + guides(fill=guide_legend(title="Month & Years")) + geom_boxplot() + coord_flip() + xlab("") +ylab("Prices under $1000") +  theme_classic()
+
+
+airbnb_price_under_500 <- subset.data.frame(airbnb_data_full, price < 500)
+airbnb_price_under_500$month_year <- factor(airbnb_price_under_500$month_year, c("February_2020", "March_2020", "April_2020", "May_2020", "June_2020", "July_2020", "August_2020", "September_2020", "October_2020", "November_2020", "December_2020", "January_2021", "February_2021", "March_2021","April_2021"))
+m_under_500_plot <- ggplot(airbnb_price_under_500, aes(x=month_year, y=price, fill=month_year)) + guides(fill=guide_legend(title="Month & Years")) + geom_boxplot() + coord_flip() + xlab("") +ylab("Prices under $500") +  theme_classic()
+m_under_5000_plot
+m_under_2500_plot
+m_under_1000_plot
+m_under_500_plot
+```
+
+
+
+From the above boxplots it appears there is price variation across the different months and years. However, the price variation across the different months does not appear to be as large as the variation across the different neighbourhoods.
+
+
+
+
+### Variable selection:
+
+
+
+By this paper's definition of listing quality, these variables were selected as being the most consistent with Airbnb quality:
+
+- bedrooms (positive numeric variable)
+
+- bathrooms (positive numeric variable)
+
+- neighbourhood_cleansed (categorical variable with levels: Kensington-Chinatown, Annex, University, Church-Yonge Corridor, and Bay Street Corridor)
+
+- review_scores_cleanliness (positive numeric variable between 0 and 10)
+
+- review_scores_rating (positive numeric variable between 0 and 10)
+
+- reviews_per_month (positive numeric variable between 0 and 10)
+
+- host_response_rate (positive numeric variable between 0 and 100)
+
+- minimum_nights (positive numeric variable)
+ 
+- maximum_nights (positive numeric variable)
+ 
+- host_is_superhost (Binary variable with levels: TRUE and FALSE)
+
+
+
+Both backwards selection and forwards selection stepwise regression with AIC criteria is ran to select the most relevant variables to predict price from this list. 
+
+
+Backwards selection stepwise results:
+
+| Step | Variable Removed     | R-Square | Adj. R-Square | C(p)    | AIC        | RMSE     |
+|------|----------------------|----------|---------------|---------|------------|----------|
+| 1    | review_scores_rating | 0.0349   | 0.0268        | -5.9853 | 46052.7716 | 367.7388 |
+| 2    | minimum_nights       | 0.0348   | 0.0271        | -7.8873 | 46050.8705 | 367.6856 |
+| 3    | maximum_nights       | 0.0347   | 0.0273        | -9.4504 | 46049.3113 | 367.6523 |
+| 4    | month_year           | 0.030    | 0.0269        | 3.7738  | 46036.6323 | 367.7249 |
+
+
+Forward selection stepwise results:
+
+
+| Step | Variable Entered       | R-Square | Adj. R-Square | C(p)      | AIC         | RMSE     |
+|------|------------------------|----------|---------------|-----------|-------------|----------|
+| 1    | bathrooms              | 0.0371   | 0.0370        | 1205.025  | 107277.8152 | 397.1688 |
+| 2    | bedrooms               | 0.0428   | 0.0426        | 1695.2279 | 99424.9512  | 411.7627 |
+| 3    | neighbourhood_cleansed | 0.0465   | 0.0457        | 1665.1344 | 99407.2845  | 411.0958 |
+| 4    | host_response_rate     | 0.0261   | 0.0243        | 394.7360  | 57472.7556  | 385.9262 |
+| 5    | reviews_per_month      | 0.0291   | 0.0267        | -30.6483  | 46514.7980  | 365.8379 |
+
+
+
+
+
+
+
+
+
+The results from both stepwise regressions match. Both stepwise regressions selected the following variables for the model:
+
+- bedrooms
+
+- bathrooms
+
+- neighbourhood_cleansed
+                         
+- month_year
+
+- reviews_per_month 
+
+- host_is_superhost
+
+- host_response_rate
+
+- review_scores_cleanliness
+
+
+
+
+
+
+
+# Model
+
+
+We will fit a linear mixed effects model to the data. A linear mixed effects model is chosen because we know that observations are correlated in different cluster levels within the data, and ignoring these correlations may present issues. 
+
+
+The first cluster would be neighbourhoods. The neighbourhoods of interest for this study are the neighbourhoods surrounding the University of Toronto. These neighbourhoods being Kensington-Chinatown, Annex, University, Church-Yonge Corridor and Bay Street Corridor. Listings within each neighbourhood are going to be more similar to each-other than they are to listings in other neighbourhoods. Part of this is due to Toronto real-estate development and city planning. For example, if an area consists of primarily office buildings, the listings in that area will be more similar to eachother than they would be to an area that consists of primarily single family housing and schools. 
+
+
+The second cluster would be hosts. There is great variation between different hosts that have their listings on Airbnb. Some hosts have multiple listings throughout Toronto, other hosts have only one listing. As there are sometimes multiple observations listed for a single host, the model must account for this correlation within the listings a host has posted and the variation between different hosts on Airbnb. 
+
+
+
+
+\begin{equation}
+\begin{aligned}
+\mathrm{price_{ijk}} = \beta_{0} + \beta_{1}\mathrm{Bedrooms_{ij}} + \beta_{2}\mathrm{Bathrooms_{ij}} + \beta_{3}\mathrm{Reviews Per Month_{ij}} +
+\beta_{3}\mathrm{HostIsSuperhost_{ij}} \\ + \beta_{4}\mathrm{HostResponseRate_{ij}}  + \beta_{5}\mathrm{ReviewScoresCleanliness_{ij}} + 
+\beta_{6}\mathrm{MonthYear_{ij}} \\ + \mathrm{Neighbourhood_{i}} + \mathrm{HostID_{ij}}
+\end{aligned}
+\end{equation}
+
+
+Where:
+
+- $\mathrm{Neighbourhood_{i}}$ refers to the random effect for the $\mathrm{i^{th}}$ neighbourhood.
+
+
+- $\mathrm{HostID_{ij}}$ refers to the random effect for the $\mathrm{j^{th}}$ host in the $\mathrm{i^{th}}$ neighborhood
+
+
+- $\mathrm{price_{ijk}}$ refers to the price measured on a per-night scale of the $\mathrm{k^{th}}$ listing from the $\mathrm{j^{th}}$ host in the $\mathrm{i^{th}}$ neighborhood
+
+
+
+
+
+
+
+
+
+
+# Results
+
+
+| Fixed Effects               | Estimate  | Standard Error  | T-Value | 95% CI           | P-value |
+|-----------------------------|-----------|-----------------|---------|------------------|---------|
+| bedrooms                    | 51.47     | 11.1533         | 4.615   | (29.61, 73.33)   | <0.001  |
+| bathrooms                   | 57.94     | 16.5923         | 3.492   | (25.42, 90.46)   | <0.001  |
+| reviews_per_month           | -7.40     | 3.9189          | -1.889  | (-15.08, 0.28)   | 0.059   |
+| host_is_superhostTRUE       | -6.60     | 15.9865         | -0.413  | (-37.93, 24.74)  | 0.680   |
+| host_response_rate          | -0.66     | 0.4065          | -1.612  | (-1.45, 0.14)    | 0.107   |
+| review_scores_cleanliness   | 5.24      | 7.4710          | 0.701   | (-9.41, 19.88)   | 0.483   |
+| month_year [April_2021]     | -16.24    | 34.9639         | -0.464  | -84.77 – 52.29   | 0.642   |
+| month_year [August_2020]    | -5.75     | 33.2231         | -0.173  | -70.86 – 59.37   | 0.863   |
+| month_year [December_2020]  | -32.61    | 33.9291         | -0.961  | -99.11 – 33.89   | 0.336   |
+| month_year [February_2020]  | -34.49    | 47.1185         | -0.732  | -126.84 – 57.86  | 0.464   |
+| month_year [February_2021]  | -34.39    | 35.3697         | -0.972  | -103.71 – 34.94  | 0.331   |
+| month_year [January_2021]   | -49.17    | 34.7210         | -1.416  | -117.22 – 18.88  | 0.157   |
+| month_year [July_2020]      | -20.49    | 108.7913        | -0.188  | -233.71 – 192.74 | 0.851   |
+| month_year [June_2020]      | 36.45     | 29.6054         | 1.231   | -21.58 – 94.47   | 0.218   |
+| month_year [March_2020]     | -58.54    | 47.1834         | -1.241  | -151.02 – 33.94  | 0.215   |
+| month_year [March_2021]     | -46.06    | 37.1784         | -1.239  | -118.93 – 26.81  | 0.215   |
+| month_year [May_2020]       | 33.82     | 27.2523         | 1.241   | -19.60 – 87.23   | 0.215   |
+| month_year [November_2020]  | -20.05    | 32.5108         | -0.617  | -83.77 – 43.67   | 0.537   |
+| month_year [October_2020]   | -30.38    | 33.2309         | -0.914  | -95.51 – 34.75   | 0.361   |
+| month_year [September_2020] | 1.71      | 31.5745         | 0.054   | -60.17 – 63.60   | 0.957   |
+
+
+
+
+| Total number of observations | Random Effects | Variance  | Standard Deviation | Number of Groups  |
+|------------------------|----------------|-----------|--------------------|-------------------|
+| 3141                   | HostID         | 16200.78  | 127.282            | 1054              |
+|                        | Neighbourhood  | 86.81     | 9.317              | 5                 |
+|                        | Residual       | 114084.70 | 337.764            |                   |
+
+
+
+
+
+
+```{r echo = FALSE, message = FALSE, warning = FALSE}
+#loading data
+airbnb_data_full <- read_csv("full_airbnb_data_final.csv", guess_max = 20000)
+airbnb_data_full <- subset(airbnb_data_full, select = c(-X1))
+
+```
+
+
+
+
+```{r echo = FALSE, message = FALSE, warning = FALSE}
+#We can get rid of the variables in the data set that will not be passed through the model.
+#subsetting the data frame for the columns of intrest
+airbnb_data_full <- subset.data.frame(airbnb_data_full, select = c("price", "bedrooms", "bathrooms", "reviews_per_month", "host_is_superhost", "host_response_rate", "review_scores_cleanliness", "host_id", "neighbourhood_cleansed", "month_year"))
+
+#ommiting na cases from the data
+airbnb_data_full_na <- na.omit(airbnb_data_full)
+
+
+```
+
+
+Reading the model results, it can be shown that there are 3141 observations passed through the model, with 1054 groups for the host random effect and 5 groups for the neighbourhood random effect. There is much higher variation between hosts than there is between neighbourhoods. This can by the variation of 16200.78 for the host random effect, when compared to the variance of 86.81 for the neighbourhood random effect.
+
+
+The model results show that of the variables selected to measure Airbnb quality, bedroom and bathroom amounts were statistically significant at the 5% significance level in predicting price. Bedrooms is the most statistically significant variable with t-value 4.615. The bedrooms variable has $\beta$ =  51.47 with 95% CI (29.25, 72.80) and p-value 4.18e-06. The bathrooms variable is the second most statistically significant variable in the model with t-value of 3.492. Bathrooms has $\beta$ = 57.94 with 95% CI (25.41, 90.25) and p-value 0.000491. The model results also show that out of all the other variables, reviews per month is the third most relevant variable in the model for the prediction of price with a t-value of -1.889. Reviews per month has $\beta$ = -7.40 with 95% CI (-15.20, 0.103) and p-value 0.059025. While reviews per month is not significant on the 5% significant level, reviews per month is significant on the 10% significant level. 
+
+Based on how the variables currently enter the model, it does not appear that if a host is a superhost, a host’s response rate, and the listing’s review scores for cleanliness have an effect on an Airbnb listing’s price. All three of these variables have p-values that are higher than the 5% significance level. However, out of these three variables, host response rate has the highest t-value of -1.612. Further, it can be shown that by the way that they currently enter the model, there does not appear to be much of an effect from the different months as each month and year is statistically insignificant at the 5% significance level. Future work could examine this in more detail to further explore the effect of seasonality in Airbnb prices.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+```{r echo = FALSE, warning = FALSE, message = FALSE, fig.align = "center"}
+pricelmm <- lmer(price ~ bedrooms +
+                   bathrooms +
+                   reviews_per_month +
+                   host_is_superhost +
+                   host_response_rate +
+                   review_scores_cleanliness +
+                   month_year + (1|neighbourhood_cleansed) + (1|host_id), data = airbnb_data_full_na)
+
+
+                   #(1|host_id) +
+                   #(1|neighbourhood_cleansed)
+#modelsummary()
+#get_estimates(pricelmm)
+# gm <- tibble::tribble(
+#   ~raw,        ~clean,          ~fmt,
+#   "nobs",      "N",             0,
+#   "r.squared", "R<sup>2</sup>", 2)
+# msummary(pricelmm, statistic = c("conf.int",
+#                                  "standard error = {std.error}",
+#                                  "t-value = {statistic}",
+#                                  "p-value = {p.value}"))
+
+#sjPlot::tab_model(pricelmm)
+#anova(pricelmm)
+#summary(pricelmm)
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# Discussion
+
+## Listing price's relation with listing quality
+
+This paper finds that out of the respective variables to measure Airbnb listing quality, bedroom and bathroom amount have the greatest effect on price. The results show that for every increase of 1 in a listing’s bedroom amount, the price of the listing increases by an average of  $51.47 per night. The results also show that for every increase of 1 in a listing’s bathroom amount, the price of the listing increases by an average of $57.94 per night. Based on the data, a higher bathroom amount in the unit leads to the highest increase in Airbnb listing price. These results are on par with the paper’s definition of Airbnb quality. It is believed that a higher number of bedrooms and bathrooms would indicate a listing of higher quality, and a listing of higher quality would have a higher price per night. 
+
+This paper also finds that for every increase in reviews per month by 1, there is a decrease in Airbnb listing price per night by an average of $-7.40. These results suggest that a lower price may indicate a higher amount of reviews per month as there are likely more bookings occurring at that listing due to the lower price. These results indicate that if an Airbnb listing has a higher amount of reviews per month, their increased traffic has likely resulted in a slight decrease in price.
+
+The results also indicate that if a host is a Superhost, there is a decrease in listing price by an average of $-6.60 per night as opposed to if a host was not a Superhost. This can likely be attributed to Superhosts understanding the market value of their property, and attempting to make their price more attractive to Airbnb customers. Also, Superhosts for Airbnb have had to achieve a certain amount of reserved stays to qualify for Superhost status. According to the Airbnb website, to be eligible to become a Superhost, you must have completed 3 reservations that total at least 100 nights (Airbnb, 2021). This may suggest the slightly lower average price per night if the host would like to retain the Superhost status.
+
+The paper finds that for an increase in cleanliness review scores by 1, on average there is an increase in price by $5.24. This result seems to be on par with the paper’s definition of quality, and that a higher quality listing would have a higher review score for cleanliness and in turn a higher price. Based on this data, this result suggests that Airbnb listings that place more value in cleanliness may have slightly higher prices per night. 
+
+Overall, the paper's results seem to be on par with the paper’s discussion of quality. Higher prices were associated with attributes that represent a listing of higher quality. However, it was seen that if a host is a Superhost and the amount of reviews of a listing per month led to slightly lower prices. This can likely be attributed to a host understanding the market that surrounds their listing, and even if the listing is of high quality, the host makes the listing affordable to attract business. However, the results did not indicate month and year being significant in predicting Airbnb listing price. This could be a result of the paper failing to capture the seasonality with the generalized linear mixed model that was fit.
+
+
+## What is next for Toronto's Airbnb market?
+
+
+COVID-19 has changed the Airbnb market in Toronto from what it once was. According to the Canadian Press, throughout COVID-19, there has been an influx of former Airbnb units that are being moved to being long-term rentals or being sold (Balakrishnan, 2020). According to a report of July 2020 data from Toronto's Regional Real Estate board, there was a spike in sale listings within Toronto condos buildings that “allow, previously allowed or are known to be popular on Airbnb” (Balakrishnan, 2020). It is difficult to say what this means for Toronto's short-term rental afforablility in the long run. CTV news has found that in April 2021 average rent prices have begun to rise again in Toronto from the overall rent price decline throughout the pandemic (Katawazi, 2021). For the rest of the pandemic period, an Airbnb host may feel the need to maintain a higher listing price per night to compensate for the infrequency of guests and the money the unit could of made on the rental market. With the easing of Ontario COVID-19 restrictions, and the eventual opening of the Canadian border for travel, there is a chance that more Airbnb listings may appear on the market at affordable prices to appeal to travelers. However, if many Airbnb hosts feel that it is more profitable to list as a long term rental or to even sell, and if Ontario continues short-term rental restrictions, it is likely that the pandemic impacted Toronto Airbnb market will maintain its difference from its pre-pandemic success. 
+
+
+
+
+
+
+
+
+
+
+
+## Weaknesses
+
+
+There was a high amount of the listings in the full data-set (February 2020 - April 2021) after the neighbourhoods of interest were selected, that were incomplete cases. These observations had to be discarded from the data-set used for modelling due to missing values for the variables of interest in the model. There was 7,824 listings in the full data-set, and 4,682 listings had to be omitted before being passed into the model due to these missing values. This meant that the model was only fit on 3141 listings. While still a large amount of listings, it needs to be noted that it is only 40% of the total amount of listings that were in the areas of Kensington-Chinatown, Annex, University, Church-Yonge Corridor and Bay Street Corridor that were listed on Airbnb anytime within the time frame of February 2020 to April 2020.
+
+July 2020 data did not contain bathroom amount. Bathroom amount for July 2020 had to be constructed by searching for July 2020 unique listing id in other months, and using that unique listing id to map those bedroom amounts onto the July 2020 data. July 2020 listings also did not contain nightly price, but instead contained weekly price. Nightly price for July 2020 had to be constructed by averaging weekly price by 7. After omitting missing values for the data to be fed into the model, July 2020 had an extremely low amount of listings. July 2020 had only 11 listings in the data after the various cleaning and omitting of missing values, which is extremely low compared to 246 listings in June 2020 and 175 listings in August 2020. As July 2020 had such a low amount of data being passed through the model, model results for July 2020 should be met with criticism. 
+
+With how the linear mixed model was fit, the model failed to capture seasonality. No month during the period of February 2020 - April 2021 was significant in the prediction of listing price. The Toronto Airbnb rental market took a major hit during COVID-19, and rental prices dropped throughout Toronto. It would make sense to see some effect of time on Airbnb listing price as tourism was halted during these months and lockdowns in Toronto were implemented to stop the spread of COVID-19. 
+
+Since we used a linear mixed effect model, we are able to assess regression assumptions the same way we would if modelling an ordinary multiple linear regression model. When assessing model diagnostics in Appendix (part A), we can see some violations of the linearity assumption, the homoscedasticity assumption, and the normally distributed errors assumption. In the first plot, the model residuals vs the predictor is plotted, there appears to be a pattern which indicates that the linearity assumption may be violated. When assessing homoscedasticity in the second plot, the values are mostly randomly scattered about 0 at the beginning, however there does appear to be some slight pattern after 1000 which may indicate that the homoscedasticity assumption is violated. When assessing normally distributed errors in the third plot, there are heavy tails which indicates some deviation from normality.
+
+
+Finally, the analysis did not contain enough pre-pandemic data to really assess how COVID-19 had impacted the Toronto Airbnb market. For a more accurate view of COVID-19's impact on listing price and quality, there should be data taken from 2017-2019 and compared to 2020. 
+
+
+
+
+## Next Steps
+
+
+For a next step, it would be helpful to fit a model of data taken from the year of 2019 to provide a more thorough comparison to the model the linear mixed model that was used in the analysis. It also would be helpful to further explore the effect of seasonality with another model that is more sensitive to time. Lastly, a model fit on each neighborhood of interest would be helpful in providing a more accurate view of how that neighbourhood's price shifted with relation to quality over the course of the COVID-19 pandemic.
+
+
+
+
+
+\newpage
+
+\appendix
+
+# Appendix {-}
+
+
+
+# Model Diagnostics:
+
+
+```{r message = FALSE, warning = FALSE, echo=FALSE}
+plot(resid(pricelmm),airbnb_data_full_na$price, main = "Plot 1")
+plot(pricelmm, main = "Plot 2")
+lattice::qqmath(pricelmm, id=0.05, main = list("Plot 3"))
+```
+
+
+
+\newpage
+
+
+# References
+
+Balakrishnan, A. (2020, July).  Former Airbnb units in Toronto moving to long-term rental market. CP24. https://www.cp24.com/news/former-airbnb-units-in-toronto-moving-to-long-term-rental-market-1.5036301?cache=ahlalmzxbysj%3FclipId%3D104056%3FautoPlay%3Dtrue%3Fot%3DAjaxLayout%3Fot%3DAjaxLayout%3FautoPlay%3Dtrue%3FcontactForm%3Dtrue%3FclipId%3D1921747. 
+
+Deirdre Bosa, S. R. (2020, May 5). Airbnb to lay off nearly 1,900 people, 25% of company. CNBC. https://www.cnbc.com/2020/05/05/airbnb-to-lay-off-nearly-1900-people-25percent-of-company.html. 
+Eisenberg, R. (2020, June 5). The long-term impact of covid-19 on short-term rentals. WeirFoulds LLP. https://www.weirfoulds.com/the-long-term-impact-of-covid-19-on-short-term-rentals. 
+
+Helliwell, J. F., Schellenberg, G., &amp; Fonberg, J. (2020). Life Satisfaction in Canada Before and During the COVID-19 Pandemic. Social Analysis and Modelling Division Statistics Canada, 457. 
+
+Hu, M and Lee, A., Airbnb, COVID-19 Risk and Lockdowns: Local and Global Evidence (2020). Available at SSRN: https://ssrn.com/abstract=3589141 or http://dx.doi.org/10.2139/ssrn.3589141
+
+
+Katawazi. (2021, April 14). Toronto rent prices begin to go back up After plummeting for more than a year. CTV News Toronto. https://toronto.ctvnews.ca/toronto-rent-prices-begin-to-go-back-up-after-plummeting-for-more-than-a-year-1.5387285. 
+
+Liu, H. (2020). The Economic Impact of Travel Restrictions on the Canadian Economy due to the COVID-19 Pandemic. Economic Insights. 
+
+Mo, G., Cukier, W., Atputharajah, A., Boase, M. I., &amp; Hon, H. (2020). Differential impacts During COVID-19 in Canada: A look at diverse individuals and their businesses. Canadian Public Policy, 46(S3). https://doi.org/10.3138/cpp.2020-072 
+
+Stevens, P. (2020, August 27). Toronto introduces series of short-term Rental reforms from 10 September. Short Term Rentals. https://shorttermrentalz.com/news/toronto-rental-reforms-september/. 
+
+What is a Superhost? - Airbnb help centre. Airbnb. (2021). https://www.airbnb.ca/help/article/828/what-is-a-superhost. 
+
